@@ -1,0 +1,24 @@
+# Um único .gitignore para toda a submissão. Sem "/" no início ou no meio dos padrões:
+# tools/adicionar-ao-git.sh aplica estas regras a partir da raiz do repositório.
+
+# Dependências e builds
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+.venv/
+
+# Deploy e segredos
+.vercel/
+.env
+.env.*
+
+# Preferências locais do Claude Code (não versionar)
+settings.local.json
+CLAUDE.local.md
+
+# Sistema
+.DS_Store
