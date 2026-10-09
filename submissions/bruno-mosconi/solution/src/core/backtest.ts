@@ -9,11 +9,13 @@ import {
 	byId,
 	chanceCurve,
 	chanceForAge,
-	concludedOnlyCurve,
+	concludedOnlyByDay,
 	maxCycleBy,
 	observedDuration,
 	openAt,
+	type Situation,
 	STALE_AFTER,
+	situation,
 } from "./rules.ts";
 
 export const SNAPSHOTS = [
@@ -35,9 +37,16 @@ export interface Candidate {
 
 interface Context {
 	curve: readonly BandChance[];
-	wrongCurve: readonly BandChance[];
+	wrongChance: (age: number) => number;
 	cutoff: number;
+	coolingFrom: number;
 }
+
+const SITUATION_RANK: Record<Situation, number> = {
+	"no-prazo": 2,
+	esfriando: 1,
+	parado: 0,
+};
 
 type Ranker = (cands: Candidate[], ctx: Context) => Candidate[];
 
@@ -49,10 +58,11 @@ const sortBy = (cands: Candidate[], key: (c: Candidate) => number) =>
 
 export const METHODS = {
 	weighted: (cands, ctx) => sortBy(cands, (c) => chanceOf(ctx, c) * c.price),
-	bandsThenPrice: (cands, ctx) =>
-		[...cands].sort(
-			(a, b) =>
-				chanceOf(ctx, b) - chanceOf(ctx, a) || b.price - a.price || tie(a, b),
+	// No prazo antes de esfriando antes de parado; dentro de cada grupo, por preço.
+	situationThenPrice: (cands, ctx) =>
+		sortBy(
+			cands,
+			(c) => SITUATION_RANK[situation(c.age, ctx.coolingFrom)] * 1e7 + c.price,
 		),
 	priceNoStale: (cands) => {
 		const fresh = sortBy(
@@ -66,10 +76,7 @@ export const METHODS = {
 	},
 	price: (cands) => sortBy(cands, (c) => c.price),
 	concludedOnly: (cands, ctx) =>
-		sortBy(
-			cands,
-			(c) => chanceForAge(ctx.wrongCurve, c.age, ctx.cutoff) * c.price,
-		),
+		sortBy(cands, (c) => ctx.wrongChance(c.age) * c.price),
 } satisfies Record<string, Ranker>;
 
 export type MethodName = keyof typeof METHODS;
@@ -81,6 +88,7 @@ export interface BacktestOptions {
 	atRisk?: AtRisk;
 	cutoff?: "fixed" | "observed"; // 138 fixo ou o maior ciclo observado em T (H2)
 	minEngage?: number; // curva só com iniciados a partir deste dia (H11)
+	coolingFrom?: number; // início de "esfriando" (D2: 90; a preparação usou 91)
 }
 
 export interface Unit {
@@ -121,6 +129,36 @@ export function candidatesAt(
 		});
 }
 
+/** A ordem de cada método para cada vendedor numa foto T (o que o backtest mede). */
+export function rankAt(ds: Dataset, t: number, opts: BacktestOptions = {}) {
+	const cutoff =
+		opts.cutoff === "observed" ? maxCycleBy(ds.deals, t) : STALE_AFTER;
+	const bands = (opts.bands ?? BANDS).filter((b) => b <= cutoff);
+	const ctx: Context = {
+		curve: chanceCurve(ds.deals, t, {
+			bands,
+			atRisk: opts.atRisk,
+			cutoff,
+			minEngage: opts.minEngage,
+		}),
+		wrongChance: concludedOnlyByDay(ds.deals, t),
+		cutoff,
+		coolingFrom: opts.coolingFrom ?? 90,
+	};
+	const byAgent = Map.groupBy(candidatesAt(ds, t, cutoff), (c) => c.deal.agent);
+	const agents = [...byAgent].sort(([a], [b]) => (a < b ? -1 : 1));
+	return {
+		cutoff,
+		agents: agents.map(([agent, cands]) => ({
+			agent,
+			cands,
+			ranked: Object.fromEntries(
+				METHOD_NAMES.map((m) => [m, METHODS[m](cands, ctx)]),
+			) as Record<MethodName, Candidate[]>,
+		})),
+	};
+}
+
 export function runBacktest(
 	ds: Dataset,
 	opts: BacktestOptions = {},
@@ -128,35 +166,14 @@ export function runBacktest(
 	const units: Unit[] = [];
 	const cutoffs: number[] = [];
 	for (const t of opts.snapshots ?? SNAPSHOTS) {
-		const cutoff =
-			opts.cutoff === "observed" ? maxCycleBy(ds.deals, t) : STALE_AFTER;
-		cutoffs.push(cutoff);
-		const bands = (opts.bands ?? BANDS).filter((b) => b <= cutoff);
-		const curveOpts = {
-			bands,
-			atRisk: opts.atRisk,
-			cutoff,
-			minEngage: opts.minEngage,
-		};
-		const ctx: Context = {
-			curve: chanceCurve(ds.deals, t, curveOpts),
-			wrongCurve: concludedOnlyCurve(ds.deals, t, bands),
-			cutoff,
-		};
-		const byAgent = Map.groupBy(
-			candidatesAt(ds, t, cutoff),
-			(c) => c.deal.agent,
-		);
-		for (const [agent, cands] of [...byAgent].sort(([a], [b]) =>
-			a < b ? -1 : 1,
-		)) {
+		const r = rankAt(ds, t, opts);
+		cutoffs.push(r.cutoff);
+		for (const { agent, cands, ranked } of r.agents) {
 			const denominator = cands.reduce((s, c) => s + c.revenue, 0);
 			const captured = Object.fromEntries(
 				METHOD_NAMES.map((m) => [
 					m,
-					METHODS[m](cands, ctx)
-						.slice(0, TOP_N)
-						.reduce((s, c) => s + c.revenue, 0),
+					ranked[m].slice(0, TOP_N).reduce((s, c) => s + c.revenue, 0),
 				]),
 			) as Record<MethodName, number>;
 			const randomExpected = Math.min(1, TOP_N / cands.length) * denominator;

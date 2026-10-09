@@ -3,13 +3,14 @@
 //   analysis/saidas/auditoria-ts.md          (a tabela, versionada)
 //   analysis/saidas/estatistica-entradas.json (entradas para conferir a estatística contra o scipy)
 
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import {
 	accountGaps,
 	agentRangeTests,
 	agentRevenue,
 	agentsWithoutDeals,
 	agentsWithoutRecent,
+	calibrationAt,
 	closeValueFacts,
 	cohortByAgent,
 	cohortOutcomes,
@@ -75,6 +76,8 @@ const row = (
 	recalculated: string,
 	ok: boolean | null,
 ) => table.push([id, claim, declared, recalculated, ok]);
+/** Monte Carlo com 10.000 sorteios: ±3 erros-padrão de uma fração perto de 0,5 (≈ 0,015). */
+const MC_TOLERANCE = 3 * Math.sqrt((0.5 * 0.5) / 10_000);
 /** Confere na precisão em que o número foi declarado. */
 const same = (declared: number, actual: number, decimals = 0) =>
 	Math.abs(Number(actual.toFixed(decimals)) - declared) < 1e-9;
@@ -233,7 +236,7 @@ row(
 	"valor ponderado (no prazo + esfriando)",
 	"≈ US$ 195 mil",
 	usd(focusWeighted),
-	Math.abs(focusWeighted - 195_000) < 5_000,
+	same(195, focusWeighted / 1000), // "≈ US$ 195 mil": confere na precisão declarada (milhares)
 );
 row(
 	"N20",
@@ -336,7 +339,7 @@ row(
 	"23,5 p.p.; ~41%",
 	`${num(rangeTests.value.observed * 100, 1)} p.p.; ${pct(rangeTests.value.shareAtLeast)}`,
 	same(23.5, rangeTests.value.observed * 100, 1) &&
-		Math.abs(rangeTests.value.shareAtLeast - 0.41) <= 0.015,
+		Math.abs(rangeTests.value.shareAtLeast - 0.41) <= MC_TOLERANCE,
 );
 const rev = agentRevenue(ds);
 row(
@@ -363,7 +366,7 @@ row(
 const bt = runBacktest(ds);
 const declaredBt: Record<MethodName | "random", number> = {
 	weighted: 44.41,
-	bandsThenPrice: 43.35,
+	situationThenPrice: 43.35,
 	priceNoStale: 40.1,
 	price: 36.17,
 	concludedOnly: 32.23,
@@ -371,7 +374,7 @@ const declaredBt: Record<MethodName | "random", number> = {
 };
 const methodLabel: Record<MethodName | "random", string> = {
 	weighted: "valor ponderado",
-	bandsThenPrice: "faixas e preço",
+	situationThenPrice: 'situação e preço ("faixas e preço")',
 	priceNoStale: "preço sem parados",
 	price: "só preço",
 	concludedOnly: "chance só com concluídos",
@@ -393,19 +396,50 @@ row(
 	String(METHOD_NAMES.length + 1),
 	METHOD_NAMES.length + 1 === 6,
 );
+// N18: o ML vem do Python (analysis/significancia_ml.py); o teste pareado é o mesmo do H3.
+const mlRows = rows(readFileSync(new URL("ml-por-vendedor.csv", OUT), "utf8"));
+const unitKey = (agent: string, t: number) => `${agent}|${isoDate(t)}`;
+const btByUnit = new Map(bt.units.map((u) => [unitKey(u.agent, u.t), u]));
+const sameUniverse = mlRows.every(
+	(r) => btByUnit.get(`${r.agent}|${r.t}`)?.denominator === Number(r.den),
+);
+const mlTotal = mlRows.reduce((s, r) => s + Number(r.den), 0);
+const mlShare = (col: string) =>
+	mlRows.reduce((s, r) => s + Number(r[col]), 0) / mlTotal;
+const mlSeeds = Object.keys(mlRows[0] ?? {}).filter((k) => k.startsWith("ml_"));
+const mlPaired = (other: (r: Record<string, string>) => number) =>
+	pairedTest(
+		[...Map.groupBy(mlRows, (r) => r.agent ?? "").values()].map((rs) => ({
+			a: rs.reduce((s, r) => s + Number(r.ml_0), 0),
+			b: rs.reduce((s, r) => s + other(r), 0),
+			den: rs.reduce((s, r) => s + Number(r.den), 0),
+		})),
+	);
+const mlVsDay = mlPaired((r) => Number(r.ev_dia));
+const mlVsD5 = mlPaired(
+	(r) => btByUnit.get(`${r.agent}|${r.t}`)?.captured.weighted ?? Number.NaN,
+);
+const mlByDay = mlShare("ev_dia");
 row(
 	"N18",
 	"ML 45,0% × valor ponderado 44,6% (exploratório)",
 	"45,0 · 44,6",
-	"a conferir depois do C1 (exige ler o Python)",
-	null,
+	`ML ${mlSeeds.map((k) => pct(mlShare(k), 2)).join(" = ")} (${mlSeeds.length} sementes) · valor ponderado por dia exato ${pct(mlByDay, 2)}; mesmo universo do backtest: ${sameUniverse ? "sim" : "NÃO"}`,
+	// O exploratório imprime com 1 casa e não desempata pelo ID; aqui há desempate. Tolerância de 0,1 p.p.
+	Math.abs(mlShare("ml_0") * 100 - 45.0) <= 0.1 &&
+		Math.abs(mlByDay * 100 - 44.6) <= 0.1 &&
+		sameUniverse,
+);
+const sqlIds = new Set(
+	readFileSync(new URL("../auditoria_sql.py", OUT), "utf8").match(/Q\d\d/g) ??
+		[],
 );
 row(
 	"N40",
-	'"21 consultas"; Python 3.13',
-	"21; 3.13",
-	"a conferir depois do C1",
-	null,
+	'"21 consultas" em auditoria_sql.py',
+	"21",
+	`${sqlIds.size} (Q01–Q21, mais a Q12b)`,
+	sqlIds.size === 21,
 );
 
 // ---------- Hipóteses
@@ -417,7 +451,7 @@ const btHeader = `| Variante | ${[...METHOD_NAMES, "random"].map((m) => methodLa
 
 h("### H1, H2, H11 e sensibilidade: o backtest muda com as escolhas?\n");
 h(btHeader);
-h(btLine("pré-registrado (faixas do AGENTS, corte 138, ≥)", bt));
+h(btLine("reconciliado (faixas do AGENTS, corte 138, em risco com >)", bt));
 h(
 	btLine(
 		"H1: faixas de 30 em 30 dias",
@@ -432,7 +466,18 @@ h(
 );
 const btObserved = runBacktest(ds, { cutoff: "observed" });
 h(btLine("H2: corte = maior ciclo observado em T", btObserved));
-h(btLine("sensibilidade: em risco com >", runBacktest(ds, { atRisk: ">" })));
+h(
+	btLine(
+		"pré-registrado no C1: em risco com ≥",
+		runBacktest(ds, { atRisk: ">=" }),
+	),
+);
+h(
+	btLine(
+		"situação com a fronteira da preparação (esfriando a partir de 91)",
+		runBacktest(ds, { coolingFrom: 91 }),
+	),
+);
 h(
 	btLine(
 		"H11: só as fotos de 31/08 e 30/09",
@@ -463,22 +508,45 @@ h(
 	`H11: curva em 31/12 só com iniciados a partir de 01/03/2017: ${lateCurve.map((c) => `${c.from}: ${pct(c.chance)} (${int(c.atRisk)})`).join(" · ")}.`,
 );
 h(
-	`Curva pré-registrada em 31/12, com n em risco: ${curve.map((c) => `${c.from}: ${pct(c.chance)} (${int(c.atRisk)})`).join(" · ")}.`,
+	`Curva reconciliada (>) em 31/12, com n em risco: ${curve.map((c) => `${c.from}: ${pct(c.chance)} (${int(c.atRisk)})`).join(" · ")}.`,
 );
 h(
-	`Sensibilidade (>): ${chanceCurve(ds.deals, T, { atRisk: ">" })
+	`Pré-registrado no C1 (≥): ${chanceCurve(ds.deals, T, { atRisk: ">=" })
 		.map((c) => `${c.from}: ${pct(c.chance)}`)
 		.join(" · ")}.`,
 );
-const curveGt = chanceCurve(ds.deals, T, { atRisk: ">" });
-const fGt = funnelAt(ds, T, curveGt);
-const wrongGt = concludedOnlyCurve(ds.deals, T, [14, 90], ">");
+const curveGe = chanceCurve(ds.deals, T, { atRisk: ">=" });
+const fGe = funnelAt(ds, T, curveGe);
+const wrongGe = concludedOnlyCurve(ds.deals, T, [14, 90], ">=");
 h(
-	`Sensibilidade (>) nos números que divergem: N13 só concluídos aos 14 e 90 dias = ${wrongGt.map((c) => pct(c.chance, 2)).join(" · ")}; N16 valor ponderado = ${usd(fGt.slices["no-prazo"].weighted + fGt.slices.esfriando.weighted)}; N17 valor ponderado = ${pct(runBacktest(ds, { atRisk: ">" }).share.weighted, 2)}.`,
+	`Pré-registrado no C1 (≥) nos números que divergiam: N13 só concluídos aos 14 e 90 dias = ${wrongGe.map((c) => pct(c.chance, 2)).join(" · ")}; N16 valor ponderado = ${usd(fGe.slices["no-prazo"].weighted + fGe.slices.esfriando.weighted)}.`,
 );
 h(
 	`H11: coorte de cada foto com a curva só de iniciados a partir de 01/03/2017: ${SNAPSHOTS.map((t) => `${date(t)} = ${int(chanceCurve(ds.deals, t, { minEngage: day("2017-03-01") })[0]?.atRisk ?? 0)}`).join("; ")} (coorte vazia = chance 0 para todos = ordem pelo ID).`,
 );
+h(
+	btLine(
+		"H11: curva limpa (iniciados a partir de 01/03/2017), só 31/08 e 30/09",
+		runBacktest(ds, {
+			snapshots: SNAPSHOTS.slice(2),
+			minEngage: day("2017-03-01"),
+		}),
+	),
+);
+h(
+	"\nCalibração: chance prevista pela curva em T para os abertos com até 138 dias × fração ganha até 31/12/2017\n\n| Foto | Curva | Coorte | Abertos | Prevista | Realizada | Por faixa (prevista → realizada, n) |\n|---|---|---|---|---|---|---|",
+);
+for (const t of SNAPSHOTS.slice(1, 3)) {
+	for (const [label, o] of [
+		["cheia", {}],
+		["limpa (desde 01/03/2017)", { minEngage: day("2017-03-01") }],
+	] as const) {
+		const c = calibrationAt(ds, t, T, o);
+		h(
+			`| ${date(t)} | ${label} | ${int(c.cohort)} | ${int(c.n)} | ${pct(c.predicted)} | ${pct(c.realized)} | ${c.bands.map((b) => `${b.from}: ${pct(b.predicted, 0)} → ${pct(b.realized, 0)} (${b.n})`).join(" · ")} |`,
+		);
+	}
+}
 h(
 	"\nH11: inícios e conclusões por mês\n\n| Mês | Inícios | Ganhos concluídos | Perdidos concluídos |\n|---|---|---|---|",
 );
@@ -500,7 +568,7 @@ const paired: Record<string, ReturnType<typeof pairedTest>> = {};
 const pairedInputs: Record<string, ReturnType<typeof perAgent>> = {};
 for (const other of [
 	"priceNoStale",
-	"bandsThenPrice",
+	"situationThenPrice",
 	"price",
 	"concludedOnly",
 ] as const) {
@@ -512,6 +580,12 @@ for (const other of [
 		`| valor ponderado − ${methodLabel[other]} | ${num(r.difference * 100, 2)} p.p. | ${num(r.ci95[0] * 100, 2)} a ${num(r.ci95[1] * 100, 2)} p.p. | ${num(r.pSignFlip, 4)} |`,
 	);
 }
+h(
+	`| ML (semente 0) − valor ponderado por dia exato (mesmo script) | ${num(mlVsDay.difference * 100, 2)} p.p. | ${num(mlVsDay.ci95[0] * 100, 2)} a ${num(mlVsDay.ci95[1] * 100, 2)} p.p. | ${num(mlVsDay.pSignFlip, 4)} |`,
+);
+h(
+	`| ML (semente 0) − valor ponderado por faixas (D5) | ${num(mlVsD5.difference * 100, 2)} p.p. | ${num(mlVsD5.ci95[0] * 100, 2)} a ${num(mlVsD5.ci95[1] * 100, 2)} p.p. | ${num(mlVsD5.pSignFlip, 4)} |`,
+);
 h("");
 for (const [i, t] of SNAPSHOTS.entries()) {
 	const us = bt.units.filter((u) => u.t === t);

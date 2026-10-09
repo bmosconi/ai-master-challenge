@@ -35,7 +35,7 @@ Antes de construir, todo o material de partida foi revisado e os números foram 
 
 ### Setup
 
-[[PREENCHER: Node 24, `npm ci`, `npm run dev`, `npm run check`, `npm run backtest`, URL]]
+[[PREENCHER: Node 22.18 ou superior, `npm ci`, `npm run dev`, `npm run check`, `npm run auditoria`, URL]]
 
 ### Recomendações
 

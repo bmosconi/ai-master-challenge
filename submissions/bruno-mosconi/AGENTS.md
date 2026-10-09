@@ -143,7 +143,7 @@ submissions/bruno-mosconi/
 
 - React + Vite + TypeScript, site estático. Sem servidor, sem banco, sem LLM em tempo de execução, sem chamada de rede (D7, D8, D15).
 - Vitest no núcleo; Playwright nos testes de navegador e prints; Biome para lint e formatação.
-- Node 24 LTS.
+- Node 22.18 ou superior (D20): a partir dessa versão, o Node roda `.ts` direto, sem flag.
 - Versões das dependências: conferir com `npm view <pacote> version` na hora de instalar e fixar no `package.json`. Nunca escrever versão de memória.
 - Deploy: Vercel, com diretório raiz `submissions/bruno-mosconi/solution`, só com autorização (D6).
 - **Escala provada com evidência** (D15, detalhe em `docs/como-escalar.md`):
@@ -151,16 +151,16 @@ submissions/bruno-mosconi/
   - `npm run bench` mede o núcleo com os dados multiplicados por 100;
   - a data de referência é parâmetro de todas as contas (point-in-time).
 
-Comandos (criados no incremento 1; atualize esta lista se mudar):
+Comandos (atualize esta lista se mudar; os marcados com * ainda não existem e entram nos incrementos seguintes):
 
 | Comando | O que faz |
 |---|---|
-| `npm run dev` | servidor local |
 | `npm run check` | tipos, lint e testes; precisa passar antes de qualquer commit |
-| `npm run build` | build de produção |
-| `npm run backtest` | reproduz a tabela de backtest da seção 7 |
-| `npm run bench` | teste de desempenho com os dados multiplicados por 100 |
-| `npm run e2e` / `npm run prints` | testes de navegador e prints para o process log |
+| `npm run auditoria` | recalcula os números da seção 7 (inclusive o backtest) e grava `solution/analysis/saidas/auditoria-ts.md` |
+| `npm run dev` * | servidor local |
+| `npm run build` * | build de produção |
+| `npm run bench` * | teste de desempenho com os dados multiplicados por 100 |
+| `npm run e2e` / `npm run prints` * | testes de navegador e prints para o process log |
 | `node --test .claude/hooks/guard-pasta.test.mjs` | testes do hook |
 | `sh tools/adicionar-ao-git.sh` | põe no índice do git os arquivos da pasta com segurança |
 
@@ -200,7 +200,7 @@ Comandos (criados no incremento 1; atualize esta lista se mudar):
 
 **Chance pela idade (sem viés de sobrevivência)**, calculada na data T:
 - **Coorte:** negócios não-Prospecting com `engage_date` ≤ T − 138 dias. O desfecho é o visto em T; quem ainda está aberto conta como "não ganhou".
-- **Faixa que começa em b dias:** chance = ganhos ÷ negócios da coorte que ainda estavam abertos depois de b dias.
+- **Faixa que começa em b dias:** chance = ganhos ÷ negócios da coorte que ainda estavam abertos depois de b dias, ou seja, com duração **maior que** b. Um negócio aberto com idade *a* só é comparável a quem durou mais de *a* (revisão inicial, R1).
 - **Faixas:** 0–29, 30–59, 60–89, 90–103, 104–119, 120–138. Mais de 138 dias: chance 0.
 - **Valores em 31/12/2017:** 49,8% · 46,4% · 44,0% · 32,9% · 21,2% · 9,1%. A coorte tem 5.991 negócios (iniciados até 15/08/2017).
 - **Errado, não usar:** calcular a chance só com negócios concluídos. Isso dá 68,7% aos 14 dias e 71,1% aos 90.
@@ -222,14 +222,15 @@ Empate: desempate pelo `opportunity_id`.
 | Método | Receita capturada |
 |---|---|
 | Valor ponderado (D5) | 44,41% |
-| Faixas e preço | 43,35% |
+| Situação e preço (no prazo, depois esfriando, depois parado; dentro de cada um, por preço) | 43,16% |
 | Preço sem os parados | 40,10% |
 | Só preço | 36,17% |
 | Chance só com concluídos (errado) | 32,23% |
 | Aleatório | 15,40% |
 
-- **Fonte:** `solution/analysis/` (Python). A implementação em TypeScript precisa reproduzir esses números.
-- **Machine learning:** no backtest exploratório (`solution/analysis/backtest_exploratorio.py`, não determinístico), um modelo de gradient boosting capturou 45,0%, contra 44,6% do valor ponderado. O ganho é pequeno para um modelo muito mais difícil de explicar. A revisão inicial deve verificar se a diferença é significativa.
+- **Fonte:** `npm run auditoria` (TypeScript) e `solution/analysis/backtest_referencia.py` (Python). Os dois precisam concordar; se divergirem, a revisão decide qual está certo e registra o motivo (D22). Concordam em tudo, menos em "situação e preço": o Python trata 90 dias como "no prazo" e dá 43,35%; com a D2 (esfriando a partir de 90), dá 43,16% (`process-log/01-revisao-inicial.md`, R2).
+- **Teste pareado** (unidade = vendedor, bootstrap e troca de sinais): o valor ponderado ganha de forma significativa de "preço sem os parados" (+4,31 p.p.; p = 0,0006) e de "só preço" (+8,23 p.p.), mas **não** de "situação e preço" (+1,25 p.p.; IC 95% −0,19 a +2,91; p = 0,13).
+- **Machine learning:** um modelo de gradient boosting (`solution/analysis/significancia_ml.py`) captura 45,03%. Contra o valor ponderado, a diferença **não é significativa**: +0,62 p.p. (IC 95% −3,32 a +3,98; p = 0,74). Fica fora.
 
 **Armadilhas conhecidas:**
 - "Sem empresa" vaza o desfecho.

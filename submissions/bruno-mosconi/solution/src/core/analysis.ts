@@ -5,8 +5,12 @@ import { type Dataset, type Deal, priceOf } from "./data.ts";
 import {
 	agentLists,
 	type BandChance,
+	type CurveOptions,
 	chanceCurve,
+	chanceForAge,
 	closedBy,
+	observedDuration,
+	openAt,
 	REFERENCE_DATE,
 	type Situation,
 	STALE_AFTER,
@@ -429,4 +433,40 @@ export function focusVsPriceOverlap(ds: Dataset, t = REFERENCE_DATE) {
 			},
 		];
 	});
+}
+
+/**
+ * Calibração: em t, a chance prevista pela curva para os abertos de cada faixa, contra a fração
+ * que de fato virou venda até `until`. O backtest mede a ordem; isto mede se a frase "de cada 10"
+ * acerta como probabilidade.
+ */
+export function calibrationAt(
+	ds: Dataset,
+	t: number,
+	until = REFERENCE_DATE,
+	opts: CurveOptions = {},
+) {
+	const curve = chanceCurve(ds.deals, t, opts);
+	const open = ds.deals
+		.filter((d) => openAt(d, t))
+		.map((d) => ({ age: observedDuration(d, t), won: wonBy(d, until) }))
+		.filter((x) => x.age <= STALE_AFTER);
+	const bands = curve.map((c, i) => {
+		const upTo = curve[i + 1]?.from ?? STALE_AFTER + 1;
+		const g = open.filter((x) => x.age >= c.from && x.age < upTo);
+		return {
+			from: c.from,
+			n: g.length,
+			predicted: c.chance,
+			realized: g.length ? g.filter((x) => x.won).length / g.length : 0,
+		};
+	});
+	return {
+		cohort: curve[0]?.atRisk ?? 0,
+		n: open.length,
+		predicted:
+			open.reduce((s, x) => s + chanceForAge(curve, x.age), 0) / open.length,
+		realized: open.filter((x) => x.won).length / open.length,
+		bands,
+	};
 }

@@ -12,6 +12,11 @@ export type AtRisk = ">=" | ">";
 
 export interface CurveOptions {
 	bands?: readonly number[];
+	/**
+	 * ">" (padrão): em risco na faixa b quem durou mais de b dias. Um negócio aberto em T com idade a
+	 * tem conclusão depois de início + a, então se compara com quem durou mais de a.
+	 * ">=" era a definição pré-registrada; a revisão mostrou que ela inclui quem concluiu no próprio dia.
+	 */
 	atRisk?: AtRisk;
 	cutoff?: number; // dias; coorte = iniciados até T − cutoff; acima disso, parado
 	minEngage?: number; // só iniciados a partir deste dia (H11)
@@ -71,7 +76,7 @@ export function chanceCurve(
 	opts: CurveOptions = {},
 ): BandChance[] {
 	const bands = opts.bands ?? BANDS;
-	const strict = opts.atRisk === ">";
+	const strict = (opts.atRisk ?? ">") === ">";
 	const base = cohort(deals, t, opts).map((d) => ({
 		dur: observedDuration(d, t),
 		won: wonBy(d, t),
@@ -88,12 +93,12 @@ export function chanceCurve(
 	});
 }
 
-/** O cálculo errado: só concluídos até T, com ciclo ≥ b. Fica aqui para mostrar o viés. */
+/** O cálculo errado: só concluídos até T, com ciclo > b. Fica aqui para mostrar o viés. */
 export function concludedOnlyCurve(
 	deals: readonly Deal[],
 	t: number,
 	bands: readonly number[] = BANDS,
-	atRisk: AtRisk = ">=",
+	atRisk: AtRisk = ">",
 ): BandChance[] {
 	const done = deals
 		.filter((d) => existsAt(d, t) && closedBy(d, t))
@@ -110,6 +115,39 @@ export function concludedOnlyCurve(
 			chance: risk.length ? won / risk.length : 0,
 		};
 	});
+}
+
+/**
+ * O cálculo errado como alguém o faria: chance por dia exato entre os concluídos até T
+ * (ciclo > idade), sem saber que acima de 138 dias nada é concluído. Para idades além do último
+ * dia com pelo menos minSample casos, usa esse último dia. É o método "chance só com concluídos"
+ * do backtest da preparação (analysis/backtest_referencia.py, closed_only).
+ */
+export function concludedOnlyByDay(
+	deals: readonly Deal[],
+	t: number,
+	minSample = 30,
+): (age: number) => number {
+	const done = deals.filter((d) => existsAt(d, t) && closedBy(d, t));
+	if (done.length === 0) return () => 0;
+	const maxCycle = Math.max(...done.map((d) => observedDuration(d, t)));
+	const atRisk = new Array<number>(maxCycle + 1).fill(0);
+	const won = new Array<number>(maxCycle + 1).fill(0);
+	for (const d of done) {
+		const dur = observedDuration(d, t);
+		for (let x = 0; x < dur; x++) {
+			atRisk[x] = (atRisk[x] as number) + 1;
+			if (d.stage === "Won") won[x] = (won[x] as number) + 1;
+		}
+	}
+	let xmax = 0;
+	atRisk.forEach((n, x) => {
+		if (n >= minSample) xmax = x;
+	});
+	return (age) => {
+		const x = Math.min(Math.max(age, 0), xmax);
+		return (won[x] as number) / (atRisk[x] as number);
+	};
 }
 
 /** Índice da faixa da idade; −1 quando passou do corte (parado). */
@@ -141,8 +179,11 @@ export function chanceForAge(
 
 export type Situation = "no-prazo" | "esfriando" | "parado";
 
-export const situation = (age: number): Situation =>
-	age > STALE_AFTER ? "parado" : age >= COOLING_FROM ? "esfriando" : "no-prazo";
+export const situation = (
+	age: number,
+	coolingFrom = COOLING_FROM,
+): Situation =>
+	age > STALE_AFTER ? "parado" : age >= coolingFrom ? "esfriando" : "no-prazo";
 
 export const byId = (a: Deal, b: Deal): number =>
 	a.id < b.id ? -1 : a.id > b.id ? 1 : 0;

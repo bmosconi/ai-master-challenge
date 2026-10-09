@@ -46,6 +46,22 @@ describe("backtest", () => {
 		expect(u?.captured.price).toBe(50);
 	});
 
+	it("situação e preço: todos no prazo, então vale o preço", () => {
+		expect(u?.captured.situationThenPrice).toBe(50);
+	});
+
+	it("situação e preço: no prazo vem antes de esfriando, mesmo mais barato", () => {
+		const cooling = { ...deals[11], id: "D013", engage: t - 95 } as Deal; // o mais caro, esfriando
+		const r2 = runBacktest(
+			{ ...ds, deals: [...deals.slice(0, 11), cooling], prices: ds.prices },
+			{ snapshots: [t] },
+		);
+		// D013 (o mais caro, ganho de 50) está esfriando e vai para o fim. Os 10 primeiros são os
+		// 11 no prazo menos o D001, então nada é capturado (D005 ganha fora da janela).
+		expect(r2.units[0]?.captured.situationThenPrice).toBe(0);
+		expect(r2.units[0]?.captured.price).toBe(50); // só preço escolhe o D013
+	});
+
 	it("empate total cai no desempate pelo ID: pega D001..D010", () => {
 		expect(u?.captured.weighted).toBe(70);
 	});

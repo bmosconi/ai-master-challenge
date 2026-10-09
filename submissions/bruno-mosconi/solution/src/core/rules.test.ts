@@ -8,6 +8,7 @@ import {
 	bandIndex,
 	chanceCurve,
 	cohort,
+	concludedOnlyByDay,
 	concludedOnlyCurve,
 	maxCycleBy,
 	observedDuration,
@@ -93,19 +94,19 @@ describe("coorte e chance por faixa", () => {
 		expect(cohort(deals, T)).toHaveLength(5);
 	});
 
-	it("em risco na faixa b = duração ≥ b; aberto conta como não ganho", () => {
+	it("em risco na faixa b = duração > b; aberto conta como não ganho", () => {
 		const c = chanceCurve(deals, T);
-		expect(c[0]).toMatchObject({ from: 0, atRisk: 5, won: 2 }); // A, C ganham; B, D, E não
+		expect(c[0]).toMatchObject({ from: 0, atRisk: 4, won: 2 }); // E (0 dias) sai; A, C ganham
 		expect(c[1]).toMatchObject({ from: 30, atRisk: 3, won: 1 }); // B(40), C(95), D(aberto)
 		expect(c[3]).toMatchObject({ from: 90, atRisk: 2, won: 1 }); // C, D
 		expect(c[5]).toMatchObject({ from: 120, atRisk: 1, won: 0 }); // só D
 	});
 
-	it("alternativa '>' tira quem concluiu exatamente no início da faixa", () => {
-		expect(chanceCurve(deals, T, { atRisk: ">" })[0]).toMatchObject({
-			atRisk: 4,
+	it("a definição pré-registrada '>=' inclui quem concluiu no próprio dia", () => {
+		expect(chanceCurve(deals, T, { atRisk: ">=" })[0]).toMatchObject({
+			atRisk: 5,
 			won: 2,
-		}); // E sai
+		}); // E entra
 	});
 
 	it("anti-vazamento: mudar o que acontece depois de T não muda nada em T", () => {
@@ -122,8 +123,17 @@ describe("coorte e chance por faixa", () => {
 
 	it("só concluídos: o aberto some e a chance sobe (o viés)", () => {
 		const c = concludedOnlyCurve(deals, T);
-		expect(c[0]).toMatchObject({ atRisk: 5, won: 3 }); // inclui o ganho de fora da coorte
+		expect(c[0]).toMatchObject({ atRisk: 4, won: 3 }); // A, B, C e o ganho de fora da coorte; E sai
 		expect(c[3]).toMatchObject({ atRisk: 1, won: 1 }); // só C: 100%
+	});
+
+	it("só concluídos por dia: idade além do último dia com amostra usa esse dia", () => {
+		const f = concludedOnlyByDay(deals, T, 2);
+		// concluídos: A 10 W, B 40 L, C 95 W, E 0 L, F 40 W. Com ≥ 2 casos, o último dia é 39.
+		expect(f(0)).toBeCloseTo(3 / 4, 12); // ciclo > 0: A, B, C, F
+		expect(f(39)).toBeCloseTo(2 / 3, 12); // B, C, F
+		expect(f(500)).toBeCloseTo(2 / 3, 12); // parado não vira 0 neste método
+		expect(concludedOnlyByDay([], T)(10)).toBe(0);
 	});
 });
 

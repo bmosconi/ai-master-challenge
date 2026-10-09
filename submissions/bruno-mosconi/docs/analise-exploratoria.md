@@ -9,7 +9,7 @@ Cada achado abaixo diz o número, como foi conferido e que decisão ele mudou.
 |---|---|---|
 | No prazo, até 89 dias | 110 | US$ 227.651 |
 | Esfriando, 90 a 138 dias | 188 | US$ 465.914 |
-| Parado, mais de 138 dias | 1.291 | US$ 3.198.664 (82% dos negócios com data) |
+| Parado, mais de 138 dias | 1.291 (81% dos negócios com data) | US$ 3.198.664 (82% do valor dos negócios com data) |
 | Prospecção (sem datas, fora dos 82%) | 500 | US$ 1.073.986 |
 
 Nenhum negócio da base foi ganho ou perdido depois de 138 dias.
@@ -80,10 +80,10 @@ Backtest com 4 datas de 2017: os 10 primeiros negócios de cada vendedor, receit
 | Método | Receita capturada |
 |---|---|
 | Valor ponderado pela idade | 44,4% |
+| Situação e preço | 43,2% |
 | Só preço | 36,2% |
 | Aleatório | 15,4% |
-| Gradient boosting (backtest exploratório versionado) | 45,0% |
 
-No backtest exploratório (não determinístico), o modelo de machine learning capturou 45,0%, contra 44,6% do valor ponderado. O ganho é pequeno para um modelo muito mais difícil de explicar ao vendedor. A significância é conferida na revisão inicial.
+O gradient boosting (`solution/analysis/significancia_ml.py`) capturou 45,0%. Contra o valor ponderado, num teste pareado por vendedor, a diferença foi de +0,6 p.p., com IC 95% de −3,3 a +4,0 e p = 0,74: **não significativa**. O valor ponderado também não ganha de forma significativa da regra "situação e preço" (+1,2 p.p.; p = 0,13). O ganho vem de separar no prazo, esfriando e parado. Fonte: `npm run auditoria` (H3).
 
 

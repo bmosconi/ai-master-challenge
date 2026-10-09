@@ -29,7 +29,7 @@ Este documento explica:
 | **Núcleo puro** em `src/core`: funções determinísticas, sem React, sem rede, sem estado global | O mesmo código roda no navegador, num job em Node ou atrás de uma API, sem reescrever a regra | Testes do núcleo rodam em Node, fora do navegador |
 | **Interface de dados** (`DataSource`): o núcleo recebe registros já normalizados | Trocar CSV por API do CRM ou por banco não muda a regra nem os testes | Dois adaptadores (CSV no app, JSON nos testes) produzem o mesmo resultado |
 | **Data de referência como parâmetro** em todas as contas (point-in-time) | Recalcular o passado sem vazar o futuro é a base do backtest, da auditoria e do monitoramento em produção | Teste anti-vazamento: mudar desfechos depois de T não muda o resultado em T |
-| **Regra calibrada pelos dados**: a curva de chance por idade é recalculada a partir da coorte | Se o ciclo de vendas mudar, a regra acompanha sem alguém reescrever pesos | O seletor de data mostra a curva mudando ao longo de 2017 |
+| **Regra calibrada pelos dados**: a curva de chance por idade é recalculada a partir da coorte | Se o ciclo de vendas mudar, a regra acompanha sem alguém reescrever pesos | `chanceCurve` recebe a data T; `npm run auditoria` mostra a curva e a calibração em mais de uma data |
 | **Custo de processamento:** uma passada para montar a coorte e uma ordenação por vendedor (ordem de n log n) | O tempo cresce de forma previsível com o volume | `npm run bench`: 880 mil negócios (100×) em `[[medir]]` ms no Node e `[[medir]]` ms no navegador |
 
 ## 2. O que muda quando a operação cresce
@@ -86,7 +86,7 @@ Este documento explica:
   - alerta se a métrica cair ou se a curva de chance mudar além de um limite;
   - painel de calibração: chance prevista × realizada, por faixa de idade.
 - **Segmentação:** curvas por produto, região ou porte só quando houver diferença estatística. Hoje não há (D3).
-- **Modelo:** com sinais de atividade, testar um modelo (por exemplo, gradient boosting) contra a regra. Só adotar se ele ganhar de forma significativa no backtest e continuar explicável, com fatores e frase. No backtest exploratório, o ganho foi de 0,4 p.p. (45,0% contra 44,6%).
+- **Modelo:** com sinais de atividade, testar um modelo (por exemplo, gradient boosting) contra a regra. Só adotar se ele ganhar de forma significativa no backtest e continuar explicável, com fatores e frase. Hoje, o ML ganha 0,6 p.p. do valor ponderado (IC 95% de −3,3 a +4,0; p = 0,74), o que não é significativo.
 - **Experimentos:** comparar regras entre grupos de vendedores, medindo receita e ciclo de vendas.
 
 ## 4. O que não muda em nenhuma fase

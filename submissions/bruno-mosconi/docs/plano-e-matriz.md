@@ -5,7 +5,7 @@
 - `README.md` da raiz (P, processo seletivo);
 - `CONTRIBUTING.md` (C);
 - `submission-guide.md` (G);
-- decisões do Bruno, D1–D17 (`AGENTS.md`, seção 7, e `process-log/decisoes.md`).
+- decisões do Bruno, D1–D26 (`AGENTS.md`, seção 7, e `process-log/decisoes.md`).
 
 O resumo completo das regras do exercício está em `AGENTS.md`, seção 2.
 
@@ -16,13 +16,13 @@ O resumo completo das regras do exercício está em `AGENTS.md`, seção 2.
 | ID | Critério | Origem |
 |---|---|---|
 | CA0 | **Revisão completa antes de construir:** regras, dados (recalculados de forma independente), código e documentação revisados; resultado em `process-log/01-revisao-inicial.md`; erros confirmados registrados. | D16; P "entendeu o problema antes de executar"; G "evidência de verificação" |
-| CA1 | Roda seguindo o README: `npm ci`, `npm run dev` e `npm run build` funcionam com Node 24. A URL pública abre a mesma versão. | R "precisa rodar"; R Setup; D6 |
+| CA1 | Roda seguindo o README: `npm ci`, `npm run dev` e `npm run build` funcionam com Node 22.18 ou superior (D20). A URL pública abre a mesma versão. | R "precisa rodar"; R Setup; D6 |
 | CA2 | Usa as 4 tabelas originais (mais `metadata.csv`), versionadas sem alteração (hash SHA-256 conferido em teste). Contagens batem: 8.800 negócios; 4.238 / 2.473 / 1.589 / 500; 35 vendedores; 7 produtos; 85 empresas. | R "dados reais" |
 | CA3 | O score vai além do valor: valor ponderado = chance pela idade (coorte, sem viés de sobrevivência) × preço de lista. Um teste mostra que a ordem difere da ordem só por preço. | R "não é só ordenar por valor"; D5 |
 | CA4 | Cada negócio mostra o motivo numa frase ("De cada 10 negócios assim, X viraram venda"), com preço e valor ponderado. Frase e score vêm do mesmo cálculo (teste). | R "entender por quê"; R "Explainability ganha"; D5 |
 | CA5 | Filtros regional → gestor → vendedor. Três listas: "Foque agora" (selo "Esfriando" a partir de 90 dias), "Revisar ou encerrar" (mais de 138 dias) e "Inicie contato" (Prospecting por preço, só em 31/12/2017). Vendedor sem negócios ou sem negócios recentes vê um estado vazio que diz o que fazer. | R bônus filtros; R "segunda de manhã"; D2; D4; D13 |
 | CA6 | Data de referência padrão 31/12/2017. O seletor volta no tempo e reconstrói o funil só com o que se sabia na data. Teste anti-vazamento: mudar desfechos posteriores a T não altera o resultado em T. Datas sem histórico suficiente ficam bloqueadas, com explicação. | D1 |
-| CA7 | `npm run backtest` reproduz a tabela de referência (44,41% · 43,35% · 40,10% · 36,17% · 32,23% · 15,40%), conferida contra a implementação independente em Python. | R "o scoring faz sentido?"; G "zero evidência de verificação" é fraqueza |
+| CA7 | `npm run auditoria` reproduz o backtest (44,41% · 43,16% · 40,10% · 36,17% · 32,23% · 15,40%), fixado em `src/core/reference.test.ts`. TypeScript e Python precisam concordar; se divergirem, a revisão decide qual está certo e registra o motivo (D22; revisão inicial, R1–R4). | R "o scoring faz sentido?"; G "zero evidência de verificação" é fraqueza |
 | CA8 | Vendedor, produto, gestor, regional, setor e empresa ficam fora do score. A tela "Como funciona" mostra o que foi testado e descartado, com p-valores e backtest. | R "usa as features certas?"; D3 |
 | CA9 | Sem servidor, sem banco, sem LLM, sem chamada de rede em tempo de execução. | D7; D8; D15 |
 | CA10 | Código mantível e pronto para crescer: TypeScript estrito; núcleo puro separado da UI; interface `DataSource` com dois adaptadores (CSV e JSON) que dão o mesmo resultado; testes do núcleo; lint e formatação. `npm run check` verde. `npm run bench` mede o núcleo com os dados multiplicados por 100. | R "código limpo"; D15 |
@@ -30,6 +30,7 @@ O resumo completo das regras do exercício está em `AGENTS.md`, seção 2.
 | CA12 | Process log da etapa do Claude Code: nota curta sobre a preparação; ferramentas; revisão inicial (leitura do problema antes de construir); decisões; erros da IA e correções; o que o Bruno adicionou; número de iterações (sem horas); prints; exports. | P; R; G "o que queremos ver no process log"; D17 |
 | CA13 | O PR só altera `submissions/bruno-mosconi/` (checado por comando). Título `[Submission] Bruno Mosconi — Challenge 003`. Um PR. Sem chaves, arquivos de sistema ou artefatos derivados. | C |
 | CA14 | Um vendedor não técnico entende: vocabulário de CRM brasileiro, moeda em US$, legível em 1280 px e 390 px. O testador de uso cumpre as tarefas das três personas. | R "vendedor consegue usar"; R "ajuda a tomar decisão"; D11 |
+| CA16 | Página "Como funciona" (D19, incremento 5): a camada de cima explica a regra numa tela; a de baixo traz S1–S4 (os dados; a chance cai com a idade; o que não muda a ordem, incluindo o mês do trimestre; como validamos). Cada seção diz o que os dados mostraram, como foi conferido e que decisão mudou. Todo gráfico tem tabela. Todo número vem de função de `src/core` coberta por teste. Legível em 1280 e 390 px. Pode ser cortada (D25). | D19; P "entendeu o problema"; R "Explainability" |
 | CA15 | `docs/como-escalar.md` completo: o que existe e foi medido (números de `npm run bench` preenchidos); o que muda com volume, frescor, usuários e ações; arquitetura em três fases; o que não muda; riscos e controles. O README resume e aponta para ele. | R Limitações ("o que precisaria pra escalar"); D15 |
 
 ## 2. Incrementos e agenda
@@ -40,18 +41,19 @@ A agenda é por dia. Não se declaram horas (D17); os commits registram a sequê
 |---|---|---|---|---|
 | 0 | sexta | Fork, clone, branch, pasta, setup do Claude Code e validação (seção 4) | — | todos os checks da seção 4 passam |
 | 0b | sexta | **Revisão completa** (`AGENTS.md`, seção 8): regras, recálculo independente dos números, código, documentação | critico, revisor | CA0; resumo mostrado ao Bruno |
-| 1 | sexta/sábado | Projeto Vite + TS + Vitest + Biome; dados em `solution/data/`; leitura, normalização e `DataSource` com testes de contagem | critico, revisor | CA2, `npm run check` verde |
-| 2 | sábado | Núcleo: funil na data T, coorte, faixas, valor ponderado, frase, listas; testes com números de referência e anti-vazamento | critico, revisor | CA3, CA4, CA6 (núcleo), CA8 (dados) |
-| 3 | sábado | Backtest em TS, `golden.json` vindo dos scripts Python, segundo adaptador (JSON), `npm run bench` | revisor | CA7, CA10 |
-| 4 | sábado | Interface do vendedor e do gestor: filtros, barra de números, três listas, painel de motivo, seletor de data, estados vazios | critico, revisor, testador-de-uso | CA5, CA6 (tela), CA14 |
-| 5 | sábado/domingo | "Como funciona": método, o que testamos e descartamos, limitações | revisor, testador-de-uso | CA8, CA9 |
+| 1–3 | sexta (feito na revisão, C1 e C2) | TS + Vitest + Biome; leitura dos dados; núcleo (coorte, faixas, valor ponderado, listas, backtest, estatística); testes à mão, contra o scipy e com os números reais; `npm run auditoria` | critico, revisor | CA2, CA3 (núcleo), CA6 (núcleo), CA7 |
+| 4 | sábado (aprovado no G1, D25) | Interface do vendedor e do gestor: filtros, barra de números, três listas, painel de motivo, seletor com 5 datas (D1), estados vazios; Vite e React. Portão visual com prints em 1280 e 390 px antes de fechar (D12) | critico, revisor, testador-de-uso | CA4, CA5, CA6 (tela), CA14 |
+| 5 | sábado/domingo | Página "Como funciona" com a investigação (D19) | revisor, testador-de-uso | CA8, CA9, CA16 |
 | 6 | domingo | Revisão de segurança, correções, deploy na Vercel (com autorização) e teste contra a URL | revisor, testador-de-uso | CA1 |
 | 7 | domingo | README, `docs/como-escalar.md` com as medições, process log, prints finais | revisor | CA11, CA12, CA15 |
 | 8 | domingo | Banca simulada, checagem do PR, abertura do PR (com autorização) | critico, revisor | CA13 |
 
 **Se o tempo apertar, cortar nesta ordem:**
-1. O seletor de data passa a oferecer só as 4 datas do backtest.
-2. O layout de celular fica com uma lista simples.
+1. A página "Como funciona" (CA16) fica só com o essencial; a tela do vendedor não pode ser cortada (D25).
+2. O segundo adaptador JSON e o `bench` (os números medidos do CA15).
+3. O layout de celular fica com uma lista simples.
+
+Já aplicado: o seletor de data oferece só 31/12/2017 e as 4 datas do backtest (ajuste da D1).
 
 **Não pode ser cortado:** CA0–CA5, CA7, CA11–CA13, CA15.
 
@@ -61,12 +63,12 @@ A agenda é por dia. Não se declaram horas (D17); os commits registram a sequê
 |---|---|---|---|
 | CA0 Revisão | `process-log/01-revisao-inicial.md` | recálculo independente; achados reproduzidos | relatório + commit de correções |
 | CA1 Rodar | `solution/package.json`, README Setup | clone limpo + comandos do README; abrir a URL | saída dos comandos; link Vercel; print |
-| CA2 Dados reais | `solution/data/*`, `src/core/data-source.ts` | teste de hash e contagens | saída do `npm run check` |
-| CA3 Score | `src/core/score.ts` | teste com números de 31/12/2017; teste "difere de só preço" | testes |
-| CA4 Motivo | `src/core/reason.ts`, painel de motivo | teste frase = cálculo | teste + print |
+| CA2 Dados reais | `solution/data/*`, `src/core/data.ts` | `data.test.ts` (hash) e `reference.test.ts` (contagens) | saída do `npm run check` |
+| CA3 Score | `src/core/rules.ts` | teste com números de 31/12/2017; teste "difere de só preço" | testes |
+| CA4 Motivo | frase gerada no núcleo (incremento 4), painel de motivo | teste frase = cálculo | teste + print |
 | CA5 Listas e filtros | `src/ui/*` | testes do núcleo das listas + `npm run e2e` | prints do testador |
-| CA6 Voltar no tempo | `src/core/snapshot.ts`, seletor | teste anti-vazamento | teste |
-| CA7 Backtest | `src/core/backtest.ts`, `analysis/*.py`, `golden.json` | TS = Python nos 6 métodos | saída do `npm run backtest` |
+| CA6 Voltar no tempo | `src/core/rules.ts` (estado em T), seletor | teste anti-vazamento | teste |
+| CA7 Backtest | `src/core/backtest.ts`, `analysis/*.py`, `reference.test.ts` | TS = Python, ou divergência decidida (D22) | saída do `npm run auditoria` |
 | CA8 Descartados | "Como funciona", `docs/analise-exploratoria.md` | revisor confere números com a análise | print + texto |
 | CA9 Sem rede | build estático | revisor procura `fetch` e URLs | parecer |
 | CA10 Código e escala | `src/core` vs `src/ui`, `DataSource` (CSV e JSON), Biome, TS estrito, `bench` | `npm run check`; `npm run bench`; revisor | saídas + parecer |

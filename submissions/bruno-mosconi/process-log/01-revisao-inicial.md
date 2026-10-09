@@ -1,6 +1,6 @@
 # Revisão inicial do material de partida
 
-Status: **plano aprovado (G0, 09/10/2026). C1 feito: recálculo independente. Próximo passo: abrir o Python e comparar (passo 3).**
+Status: **revisão concluída (C1 e C2). Aguardando o G1: decisões do Bruno no fim deste arquivo.**
 
 ## Plano
 
@@ -336,7 +336,7 @@ O Bruno aprovou o plano com ajustes. Eles estão registrados em `decisoes.md`, d
 
 Um erro meu apareceu no caminho. No teste das listas, a minha conta à mão esqueceu que os negócios parados também entram na coorte: escrevi 2/4 onde o certo era 2/7. Corrigi o caso antes de rodar; o código não precisou mudar.
 
-**Resultado (C1).** De 40 linhas da auditoria, **32 conferem, 6 divergem e 2 estão pendentes**: N18 e N40 dependem de ler o Python. A tabela completa está em `solution/analysis/saidas/auditoria-ts.md`.
+**Resultado (C1).** De 40 linhas da auditoria, **32 conferem, 6 divergem e 2 estão pendentes**: N18 e N40 dependem de ler o Python. *Correção feita depois, achado 7 do revisor:* a auditoria do C1 aceitava ±US$ 5 mil no N16 sem regra pré-registrada, e a tabela abaixo já o marcava como divergente. Com a regra única (ver "Tolerâncias"), o C1 fica em **31 conferem, 7 divergem e 2 pendentes**. A tabela completa está em `solution/analysis/saidas/auditoria-ts.md`.
 
 | ID | Declarado | Recalculado (C1) | Observação, antes de ler o Python |
 |---|---|---|---|
@@ -363,3 +363,176 @@ Um erro meu apareceu no caminho. No teste das listas, a minha conta à mão esqu
 - **H8:** "de cada 10" junta as faixas de 0 e 30 dias (as duas viram 5).
 - **H10:** dos 10 primeiros por valor ponderado, em média 88,6% também são os 10 mais caros; em 9 dos 21 vendedores, a lista é idêntica.
 - **P8:** o setor "technolgy" está grafado errado.
+
+## Comparação com o Python e reconciliação (passo 3)
+
+**Como.** Depois do C1, li os 4 scripts de `solution/analysis/` e as saídas deles. Rodei os scripts no `.venv` (Python 3.12.4, versões do `requirements.txt`). `backtest_referencia.py` e `efeito_trimestre.py` reproduzem as saídas salvas byte a byte. `auditoria_sql.py` muda só a ordem de linhas empatadas, porque as consultas não têm `ORDER BY` completo; restaurei o arquivo versionado. Para o N18, escrevi `solution/analysis/significancia_ml.py`: é o mesmo modelo do exploratório, agora com desempate pelo ID e 5 sementes, e exporta a receita capturada por vendedor e foto. O teste pareado roda no TypeScript (`npm run auditoria`).
+
+**Decisões de reconciliação** (CA7, D22: se TS e Python divergem, a revisão decide qual está certo e por quê):
+
+| # | Divergência | Causa | Quem está certo | Mudança no TS |
+|---|---|---|---|---|
+| R1 | Curva, N13, N16, valor ponderado do backtest | Pré-registrei "em risco" como duração ≥ b; o Python usa > b (`backtest_referencia.py:16`, `auditoria_sql.py:53`) | **Python.** Um negócio aberto em T com idade *a* tem conclusão depois de início + *a*, então só é comparável a quem durou mais de *a* | padrão `atRisk: ">"`; o ≥ fica como alternativa testada |
+| R2 | "Faixas e preço" 43,35% × 32,69% | O método do Python é **situação** (no prazo > esfriando > parado), depois preço (`backtest_referencia.py:26`); eu tinha lido "chance da faixa, depois preço" | **Python, quanto ao método.** Mas o Python trata 90 dias como no prazo (`a<=90`), contra os 0–89 da D2: um erro de um dia | método `situationThenPrice` com a fronteira da D2: **43,16%**. Com a fronteira do Python, 43,35%, o que confirma a causa |
+| R3 | "Chance só com concluídos" 32,23% × 38,08% | O Python usa chance por dia exato, com o último dia que tem pelo menos 30 casos, e **não zera os parados** (`backtest_referencia.py:18-21`); eu tinha zerado | **Python.** É o cálculo ingênuo como alguém o faria; zerar os parados emprestaria a ele um conhecimento que vem da coorte | `concludedOnlyByDay` |
+| R4 | N18: ML 45,0 × 44,6 | O 44,6% do exploratório é a chance por **dia exato**, não as faixas da D5 (`backtest_exploratorio.py:23-29`) | os dois reproduzem: ML 45,03% (as 5 sementes iguais; com cerca de 2 mil linhas por foto não há parada antecipada) e valor ponderado por dia 44,65%, contra 44,6 do exploratório, que não desempata pelo ID | — |
+
+**Vazamento.** Não encontrei. Nos dois backtests, a curva, a coorte e os ganhos usam `cl <= T`. Os candidatos são `eng <= T & (cl nulo | cl > T)`. O ML treina na foto T−90 com rótulo "ganho até T" (`backtest_exploratorio.py:31-32`). O corte fixo de 138 não usa o futuro: o maior ciclo observado já é 138 nas 4 fotos (H2).
+
+**A pergunta do AGENTS sobre o ML (N18): a diferença não é significativa.**
+
+| Comparação (unidade = vendedor, 4 fotos somadas, 10.000 reamostragens) | Diferença | IC 95% | p (troca de sinais) |
+|---|---|---|---|
+| ML − valor ponderado por dia exato (mesmo script) | +0,38 p.p. | −3,24 a +3,48 | 0,83 |
+| ML − valor ponderado por faixas (D5) | +0,62 p.p. | −3,32 a +3,98 | 0,74 |
+
+Pela regra fixada antes de rodar (IC sem o zero e ganho de pelo menos 2 p.p.), o ML não entra.
+
+**H3 depois da reconciliação: o ganho do valor ponderado vem quase todo da situação, não da curva.**
+
+| Comparação | Diferença | IC 95% | p |
+|---|---|---|---|
+| valor ponderado − situação e preço | +1,25 p.p. | −0,19 a +2,91 | 0,13 |
+| valor ponderado − preço sem parados | +4,31 p.p. | +1,99 a +7,21 | 0,0006 |
+| valor ponderado − só preço | +8,23 p.p. | +4,58 a +12,67 | 0,0001 |
+| valor ponderado − chance só com concluídos | +12,17 p.p. | +6,65 a +18,59 | 0,0001 |
+
+### Tabela da revisão (AGENTS §8)
+
+"Recalculado (C1)" é o valor do commit `3684997`, que não é mais editado. "Reconciliado" é o valor atual de `npm run auditoria`, com R1–R4. Os detalhes de cada linha estão em `solution/analysis/saidas/auditoria-ts.md`.
+
+| ID | Afirmação | Onde | Declarado | Recalculado (C1) | Reconciliado | Status | Ação |
+|---|---|---|---|---|---|---|---|
+| N01, N03 | negócios, empresas, produtos, vendedores | AGENTS:48, 169 | 8.800; 85; 7; 35 | igual | igual | confere | — |
+| N02 | `close_value` 0 nos perdidos, vazio nos abertos | AGENTS:49 | 2.473 de 2.473 | igual; vazio em 2.089 de 2.089 | igual | confere | — |
+| N04 | etapas | AGENTS:170 | 4.238 · 2.473 · 1.589 · 500 | igual | igual | confere | — |
+| N05 | "GTXPro" | AGENTS:171 | 1.480 | igual | igual | confere | — |
+| N06 | Prospecting sem data | AGENTS:172 | 0 com data | igual | igual | confere | — |
+| N07, N37 | sem empresa | AGENTS:173; como-escalar:105 | 1.425 de 2.089 (68%); 0 concluídos | igual (68,2%) | igual | confere | — |
+| N08, N21 | período; 1º concluído; maior ciclo | AGENTS:175; análise:15 | 20/10/2016–31/12/2017; 01/03/2017; 138 | igual (ganhos e perdidos: 138) | igual | confere | — |
+| N09 | 5 vendedores sem negócio | AGENTS:177 | 5 nomes | os mesmos 5 | igual | confere | — |
+| N10 | sem negócio recente | AGENTS:178 | 9 de 30: 6; 3 | igual | igual | confere | — |
+| N11, N26 | p do qui-quadrado (6 dimensões) | AGENTS:186; análise:45–50 | 0,264 · 0,786 · 0,604 · 0,372 · 0,971 · 0,943 | iguais | iguais | confere | o argumento da D3 muda (H5), ver a crítica |
+| N12, N22 | chance por faixa; coorte | AGENTS:202–205; análise:21–31 | 49,8 · 46,4 · 44,0 · 32,9 · 21,2 · 9,1; 5.991 | 49,8 · 46,4 · 44,2 · 33,6 · 22,1 · 9,9; 5.991 | igual ao declarado | confere após R1 | registrar a definição ">" no AGENTS |
+| N13, N23 | só concluídos aos 14 e 90 dias | AGENTS:206; análise:33 | 68,7 · 71,1 | 68,6 · 71,3 | 68,7 · 71,1 | confere após R1 | — |
+| N14 | no prazo · esfriando · parados | AGENTS:216 | 110 · 188 · 1.291 | igual | igual | confere | — |
+| N15, N19, N38 | US$ 3,89 mi; 82% parado; prospecção US$ 1,07 mi | AGENTS:217; análise:6; README:15 | idem | igual (82,2% do valor) | igual | confere | — |
+| N16 | valor ponderado | AGENTS:218 | ≈ US$ 195 mil | US$ 199.308 | US$ 195.380 | confere após R1 | — |
+| N20 | US$ por situação | análise:10–13 | 227.651 · 465.914 · 3.198.664 · 1.073.986 | igual | igual | confere | — |
+| N20 (P5) | "82% dos negócios com data" | análise:12 | 82% dos negócios | 81,2% dos negócios; 82,2% do valor | igual | **diverge (redação)** | trocar por "82% do valor" |
+| N24 | taxa de ganho; IC 95% | análise:38 | 63,15%; 62,0–64,3 | igual (Wilson e normal) | igual | confere | — |
+| N25 | de cada 100 iniciados | análise:39 | 50 · 29 · 22 | 49,8 · 28,5 · 21,7 | igual | confere | — |
+| N27 | melhor − pior vendedor; sorteios | análise:52; AGENTS:186 | 15,4 p.p.; 36–38% | 15,4; 38,1% | igual | confere | — |
+| N28 | em valor | análise:53 | 23,5 p.p.; ~41% | 23,5; 42,3% | igual | confere | — |
+| N29 | receita 9,3×; Spearman | análise:54 | 9,3×; 0,62; −0,21 | igual | igual | confere | — |
+| N30 | mês do trimestre | análise:61–63 | 49,0 · 54,7 · 80,7 | igual | igual | confere | — |
+| N17, N32 | backtest: valor ponderado | AGENTS:224; análise:82 | 44,41% | 44,25% | 44,41% | confere após R1 | — |
+| N17 | "faixas e preço" | AGENTS:225 | 43,35% | 32,69% | 43,16% (D2) | **diverge: erro de um dia no Python** | renomear para "situação e preço" e usar 43,16% |
+| N17 | preço sem parados · só preço · aleatório | AGENTS:226–229 | 40,10 · 36,17 · 15,40 | iguais | iguais | confere | — |
+| N17 | chance só com concluídos | AGENTS:228 | 32,23% | 38,08% | 32,23% | confere após R3 | — |
+| N18, N33, N36 | ML × valor ponderado | AGENTS:232; análise:85–87; como-escalar:89 | 45,0 · 44,6 | pendente | 45,03 · 44,65; diferença não significativa (p = 0,74–0,83) | confere | escrever o resultado do teste no lugar de "a revisão verifica" |
+| N32 (P4) | tabela da análise §7 | análise:82–85 | mistura 44,4 (referência) com 45,0 (exploratório) | — | — | **erro de comparação** | separar as duas tabelas, ou comparar o ML com 44,65 |
+| N34, N35 | 880 mil; `[[medir]]` | como-escalar:33, 55 | a medir | — | — | sem número ainda | preencher no incremento do `bench`, ou cortar (D25) |
+| N39 | seis métodos | README:26 | 6 | 6 | 6 | confere | — |
+| N40 | "21 consultas"; Python 3.13 | analysis/README:24, 41 | 21; 3.13 | — | 21 (Q01–Q21, mais a Q12b); os scripts reproduzem no 3.12.4 | confere | registrar que reproduz no 3.12.4 |
+| N41 | hook com 10 testes | plano:102 | 10 | 10 aprovados | — | confere | — |
+
+**Tolerâncias.** Esta regra não estava no pré-registro; ficou explícita depois do achado 7 do revisor.
+- Valores exatos e valores com "≈" ou "~" conferem quando batem **na precisão em que foram declarados**. "≈ US$ 195 mil" exige 195 mil.
+- Valores de Monte Carlo (os sorteios dos N27 e N28) conferem dentro de **±3 erros-padrão**, ou seja, ±1,5 p.p. com 10.000 sorteios.
+
+**Saldo:** 41 itens no inventário e 40 linhas na auditoria. No C1, com a regra única, **31 conferem, 7 divergem e 2 estão pendentes**. Depois da reconciliação, **38 conferem e 2 divergem**, as duas com causa conhecida: a redação do N20 e o erro de um dia do Python no N17. Os itens só de texto (P4, P6, P7, P10, P12, P13) vão para os achados de documentação.
+
+## Achados de código, configuração e documentação (revisor, rodada 1)
+
+O veredito do revisor foi "aprovar após correções". Cada achado foi reproduzido antes de ser corrigido.
+
+| # | Achado | Reproduzido? | Decisão | Onde |
+|---|---|---|---|---|
+| V1 | O "faixas e preço" do TS não é o método da preparação | sim: o mesmo que R2 | **corrigido** (`situationThenPrice`), com teste à mão | C2 |
+| V2 | O "só concluídos" do TS zerava os parados | sim: o mesmo que R3 | **corrigido** (`concludedOnlyByDay`), com teste à mão | C2 |
+| V3 | As 5 sementes do ML não medem variação; a "falta de determinismo" do exploratório vem do empate sem ID | sim: as 5 sementes dão 45,03% | **aceito.** A variação real é medida pelo bootstrap por vendedor. O `analysis/README.md` passa a dizer a causa certa | C2 (doc) |
+| V4 | Nenhum teste fixa os números reais, e um método que lê o futuro passaria | sim: o `grep` não acha nenhum teste com 5991, 4238, 1291 ou 44.41 | **corrigido.** `reference.test.ts` fixa as contagens, a coorte, a curva, o funil, o valor ponderado e os 6 métodos, com 2 casas. O teste anti-vazamento do backtest muda todos os desfechos depois de T e exige a mesma ordem em todos os métodos. **Teste do próprio teste:** um método que ordena pela receita futura muda a ordem e é pego | C2 |
+| V5 | O script de git põe `00-leitura-do-problema.md` no índice | sim: aconteceu no C1 e foi tirado com `git restore --staged` | **aceito como procedimento.** Repetir em todo commit até o Bruno fazer o dele | — |
+| V6 | `engines >=22` aceita um Node que não roda `.ts` sem flag | não reproduzido: não tenho Node 22.17. A fonte é a nota de versão do Node 22.18.0, em que a remoção de tipos passou a ser padrão | **aceito:** `>=22.18`, no `package.json` e nos documentos. É um ajuste da D20 | C2 |
+| V7 | O N16 tinha dois status, e as tolerâncias não estavam pré-registradas | sim | **corrigido:** regra única (acima), aplicada no código, com a contagem do C1 refeita | C2 |
+| V8 | Os documentos contradizem a H5 ("não há diferença por vendedor") | sim: como-escalar:88, análise:41 | **aceito.** O novo argumento depende do Bruno (G1, D3) | C2 depois do G1 |
+| V9 | Referências quebradas: arquivos do plano que não existem, "D1–D17", `npm run backtest` inexistente, `critico.md` apontando para a seção 6, terceiro nome do método, `sha256sum` no macOS | sim, todas | **aceito.** Corrijo no C2; o `critico.md` está em `.claude/` e fica como proposta | C2; `.claude/` depende do Bruno |
+| V10 | Coorte vazia vira chance 0 sem aviso | sim: a variante H11 em 30/06 | **aceito, para o incremento 4.** As 5 datas do seletor têm coorte, então hoje não há caso real. A guarda `hasEnoughHistory` entra junto com o seletor (CA6) | incremento 4 |
+
+O revisor pediu também o e-mail dos commits: `git log --format='%ae'` mostra um endereço `@gmail.com` (pessoal) no C1. Ele não está escrito aqui.
+
+## Parecer do critico sobre a revisão (rodada 1 deste gatilho)
+
+Veredito: "ajustar e seguir". O ponto que bloqueia é decidir a coorte (H11) antes do incremento 4.
+
+| # | Achado | Reproduzido? | Decisão |
+|---|---|---|---|
+| K1 | [BLOQUEANTE] A base cortada no início infla a curva, e a frase e o valor ponderado herdam isso | **sim, e piorou na checagem:** a taxa de ganho por mês de início em `efeito_trimestre.txt` é 1,0 (out/16), 0,72, 0,68 e 0,58 nos meses iniciais, contra 0,34 a 0,57 de abr a ago/17. A coorte limpa é vazia em 30/06 e tem 379 negócios em 31/07. A calibração está abaixo | aceito; vai ao G1 (pergunta 1) |
+| K2 | A D3 testa o vendedor com o método que o projeto chama de errado para a curva | sim: p = 0,264 entre concluídos e p < 0,001 na coorte; a diferença está na fração que fica aberta (de 0% a 31%) | aceito; vai ao G1 (pergunta 3) |
+| K3 | O ganho vem da triagem por idade, não da curva fina | sim: H3 +1,25 p.p. sobre "situação e preço", p = 0,13; H10 88,6% | aceito; vai ao G1 (pergunta 4) |
+| K4 | A parte que diferencia a entrega é a que pode ser cortada | é leitura do plano; o fato confere (D19 e D25) | aceito como proposta; vai ao G1 (pergunta 5) |
+| K5 | O AGENTS §2.2 omite trechos do enunciado: a frase da Head, "o deliverable principal é software", a dica completa das features óbvias, o exemplo "score 85" e o "setor de educação" | sim: enunciado:15, 17, 96, 98; README raiz:52 | aceito; muda o AGENTS, então vai ao G1 (pergunta 6) |
+| K6 | A frase "de cada 10" é uma probabilidade sem validação | **sim:** em 31/08, a curva cheia prevê 51,7% e se realizam 34,3%; a limpa prevê 45,3% (`auditoria-ts.md`, Calibração; `reference.test.ts`) | aceito; `calibrationAt` entrou no núcleo, com teste; vai ao G1 (pergunta 2) |
+| K7 | As reconciliações estão certas; os números de H3 e H11 citados eram os da versão com ≥ | sim | corrigido: os números com > estão abaixo. A seção C1 continua com os valores do C1, como registro |
+| K8 | A S3 com seletor e embaralhamento no navegador é cara para uma página que pode ser cortada | — | **aceito no plano do incremento 5:** a S3 vira uma tabela estática com as 8 dimensões, os dois p-valores e o mês do trimestre; o embaralhamento fica só na auditoria |
+
+Números reconciliados (">") que substituem os da seção C1:
+- curva limpa em 31/12: 47,3 · 41,7 · 38,6 · 25,6 · 13,5 · 4,3%;
+- H3: valor ponderado − preço sem parados = +4,31 p.p. (IC 1,99 a 7,21);
+- H1: faixas de 30 em 30 dias dão 44,14%.
+
+## Crítica
+
+O que está fraco, o que eu mudaria e por quê, em ordem de prioridade. Cada item tem evidência em `solution/analysis/saidas/auditoria-ts.md`.
+
+1. **A curva superestima a chance, e o motivo é conhecido.**
+   - A base só contém negócios concluídos a partir de 01/03/2017 ou ainda abertos. Os iniciados antes disso entram só se sobreviveram até março (H11), e por isso ganham mais: 72% em nov/16 contra cerca de 45% em 2017.
+   - Em 31/08, a curva cheia previa 51,7% de ganho para os abertos e se realizaram 34,3%. A curva limpa (iniciados a partir de 01/03/2017) previa 45,3%: ainda erra, mas menos.
+   - A **ordem** não muda: com a curva limpa, o valor ponderado dá 43,10% nas fotos de 31/08 e 30/09, contra 42,97% com a cheia.
+   - **Mudaria:** usar a coorte limpa; bloquear datas com coorte pequena (30/06 tem zero); e não vender a chance como previsão.
+2. **A frase "de cada 10" e o valor ponderado são instrumentos de ordem, não previsões.**
+   - Mesmo com a curva limpa, a chance prevista fica 11 p.p. acima da realizada em 31/08. Por faixa, o erro oscila muito (30 dias: 51% → 22%; 90 dias: 31% → 44%).
+   - O calendário pesa, e muito (mês do trimestre: 49% · 55% · 81%), e não é conhecido para um negócio em andamento.
+   - **Mudaria:** escrever a frase como fato histórico ("entre os negócios que chegaram a essa idade, X de cada 10 viraram venda"); mostrar a calibração no "Como funciona"; e não somar o valor ponderado como previsão de receita na visão do gestor.
+3. **A D3 está certa, mas pelo motivo errado.**
+   - Produto não muda nada: p = 0,37 entre concluídos e 0,72 na coorte.
+   - O vendedor não muda a taxa entre concluídos (p = 0,26), mas muda muito a fração que fica parada: 0% para três vendedores, até 31% para outros (p < 0,001 na coorte). A própria auditoria SQL da preparação já mostrava isso (Q12).
+   - Um fator do vendedor multiplica todos os negócios dele e **não muda a ordem da lista que ele vê**; esse é o argumento certo para deixá-lo fora.
+   - **Mudaria:** reescrever a D3 e a análise com os dois testes, e levar o achado para a visão do gestor ("% parado por vendedor"), que é a informação mais acionável da base para quem gerencia.
+4. **"Vai além de ordenar por valor" está frágil e precisa ser dito com precisão.**
+   - Sobre "só preço", o valor ponderado ganha +8,23 p.p. (IC 4,58 a 12,67), e isso é sólido.
+   - Sobre "situação e preço", ganha só +1,25 p.p. (p = 0,13).
+   - Em 31/12, 88,6% dos 10 primeiros por valor ponderado também estão entre os 10 mais caros.
+   - **Mudaria:** a mensagem passa a ser "a idade decide em que lista o negócio está e se ele esfria; o preço ordena dentro da lista; a chance explica". O CA3 passa a exigir o ganho sobre "só preço" com IC. O painel mostra o custo de esperar.
+5. **O ML fica fora, agora com evidência.** +0,62 p.p. sobre o valor ponderado, IC −3,32 a +3,98, p = 0,74. A regra de decisão foi fixada antes (2 p.p. e IC sem o zero), e o resultado não chegou perto.
+6. **Risco de parecer o baseline.**
+   - O score usa idade e preço, justamente as features que o enunciado chama de óbvias.
+   - O que diferencia a entrega é a evidência: viés de sobrevivência evitado, base cortada detectada, "sem empresa" que vaza o desfecho, backtest com IC, ML testado e descartado, calibração.
+   - Essa evidência está na página que pode ser cortada.
+   - **Mudaria:** um piso que não pode ser cortado, sem gráficos: três tabelas vindas de `src/core` (curva da coorte × só concluídos; backtest com IC; dimensões com os dois p-valores), mais uma linha no painel de motivo.
+7. **Os dados parecem sintéticos ou recortados (H7):**
+   - ciclo máximo idêntico (138) para ganhos e perdidos;
+   - nenhum negócio concluído depois de 138 dias;
+   - três vendedores com 0% de negócios parados;
+   - corte no início e no fim, com só 121 inícios em dez/17;
+   - um efeito de fim de trimestre enorme.
+   **Mudaria:** dizer isso nas limitações, sem exagerar, e vender o método (point-in-time, coorte, backtest, calibração), que funcionaria numa base real, e não os números da curva.
+8. **Pontos menores:**
+   - o resumo de regras do AGENTS omite trechos do enunciado (K5);
+   - o `critico.md` aponta para a seção 6 em vez da 7;
+   - o benchmark promete faixas "alta, média, baixa" que nenhuma decisão prevê (P7): decidir no incremento 4;
+   - "technolgy" está grafado errado no `accounts.csv` (P8): corrigir na exibição, sem mudar o arquivo.
+
+## Decisões para o Bruno (G1)
+
+| # | Decisão | Recomendação | Muda |
+|---|---|---|---|
+| 1 | Coorte limpa: só iniciados a partir da primeira conclusão observada (01/03/2017), mais um n mínimo de coorte para a data ficar disponível | **Sim, com n ≥ 1.000.** O seletor fica com 31/08, 30/09 e 31/12/2017 (31/07 tem 379; 30/06 tem 0). O backtest de referência de 4 fotos continua como comparação de **ordem** entre métodos, com a linha da curva limpa ao lado | D1 (ajuste), D5, CA6 |
+| 2 | A chance é apresentada como histórico, não como previsão; o valor ponderado é critério de ordem | **Sim.** Frase: "Entre os negócios que chegaram a essa idade, X de cada 10 viraram venda". O "Como funciona" mostra a calibração. A visão do gestor mostra o valor em funil por situação, e não soma o valor ponderado como previsão | D5, CA4 |
+| 3 | Novo argumento da D3, e o "% parado por vendedor" na visão do gestor | **Sim** | D3, incremento 4 |
+| 4 | Mensagem e CA3: "a idade decide a lista, o preço a ordem, a chance explica"; o CA3 exige o ganho sobre "só preço" com IC | **Sim** | CA3, README |
+| 5 | Piso não cortável do CA16: três tabelas, sem gráfico | **Sim.** Gráficos e seletor continuam cortáveis | D25, CA16 |
+| 6 | O AGENTS §2.2 ganha os trechos literais do enunciado (K5 e P12); a D3 é reescrita; a tabela do §7 aponta para D18–D26 | **Sim.** Aplico com o seu ok, porque mexe no AGENTS | AGENTS |
+| 7 | Corrigir o `critico.md` (seção 6 → 7) | **Sim.** Está em `.claude/` e precisa do seu ok | `.claude/` |
+| 8 | Commit do `00-leitura-do-problema.md` | quando você avisar, faço um commit só com ele | — |

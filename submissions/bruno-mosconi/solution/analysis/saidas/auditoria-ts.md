@@ -14,12 +14,12 @@ Gerado por `npm run auditoria` a partir de `solution/data/`. Data de referência
 | N08 | primeira data; última; 1º concluído; maior ciclo | 20/10/2016; 31/12/2017; 01/03/2017; 138 | 20/10/2016; 31/12/2017; 01/03/2017; 138 (ganhos 138, perdidos 138) | confere |
 | N09 | vendedores sem nenhum negócio | 5: Carl Lin, Carol Thompson, Elizabeth Anderson, Mei-Mei Johns, Natalya Ivanova | 5: Carl Lin, Carol Thompson, Elizabeth Anderson, Mei-Mei Johns, Natalya Ivanova | confere |
 | N10 | sem negócio recente em 31/12 (dos com histórico): só parados/prospecção; nada aberto | 9 de 30: 6; 3 | 9 de 30: 6; 3 | confere |
-| N12 | chance por faixa 0·30·60·90·104·120 | 49,8 · 46,4 · 44,0 · 32,9 · 21,2 · 9,1 | 49,8 · 46,4 · 44,2 · 33,6 · 22,1 · 9,9 | **diverge** |
+| N12 | chance por faixa 0·30·60·90·104·120 | 49,8 · 46,4 · 44,0 · 32,9 · 21,2 · 9,1 | 49,8 · 46,4 · 44,0 · 32,9 · 21,2 · 9,1 | confere |
 | N12 | coorte: negócios; último início | 5.991; 15/08/2017 | 5.991; 15/08/2017 | confere |
-| N13 | só concluídos: aos 14 e aos 90 dias | 68,7% · 71,1% | 68,6% · 71,3% | **diverge** |
+| N13 | só concluídos: aos 14 e aos 90 dias | 68,7% · 71,1% | 68,7% · 71,1% | confere |
 | N14 | no prazo · esfriando · parados (dos Engaging) | 110 · 188 · 1.291 | 110 · 188 · 1.291 | confere |
 | N15 | preço de lista dos Engaging; % parado (do valor); prospecção | US$ 3,89 mi; 82%; US$ 1,07 mi | US$ 3,89 mi; 82%; US$ 1,07 mi | confere |
-| N16 | valor ponderado (no prazo + esfriando) | ≈ US$ 195 mil | US$ 199.308 | confere |
+| N16 | valor ponderado (no prazo + esfriando) | ≈ US$ 195 mil | US$ 195.380 | confere |
 | N20 | US$ no prazo · esfriando · parado · prospecção | 227.651 · 465.914 · 3.198.664 · 1.073.986 | 227.651 · 465.914 · 3.198.664 · 1.073.986 | confere |
 | N20 | "82% dos negócios com data" (P5): % dos negócios × % do valor | 82% dos negócios | 81,2% dos negócios; 82,2% do valor | **diverge** |
 | N21 | nenhum concluído depois de 138 dias | 0 | 0 | confere |
@@ -35,40 +35,51 @@ Gerado por `npm run auditoria` a partir de `solution/data/`. Data de referência
 | N28 | em valor: diferença; % dos sorteios ≥ | 23,5 p.p.; ~41% | 23,5 p.p.; 42,3% | confere |
 | N29 | receita: maior ÷ menor; Spearman com volume; com taxa | 9,3×; 0,62; −0,21 | 9,3×; 0,62; -0,21 | confere |
 | N30 | taxa por mês do trimestre: 1º · 2º · 3º | 49,0 · 54,7 · 80,7 | 49,0 · 54,7 · 80,7 | confere |
-| N17 | backtest: valor ponderado | 44,41% | 44,25% | **diverge** |
-| N17 | backtest: faixas e preço | 43,35% | 32,69% | **diverge** |
+| N17 | backtest: valor ponderado | 44,41% | 44,41% | confere |
+| N17 | backtest: situação e preço ("faixas e preço") | 43,35% | 43,16% | **diverge** |
 | N17 | backtest: preço sem parados | 40,10% | 40,10% | confere |
 | N17 | backtest: só preço | 36,17% | 36,17% | confere |
-| N17 | backtest: chance só com concluídos | 32,23% | 38,08% | **diverge** |
+| N17 | backtest: chance só com concluídos | 32,23% | 32,23% | confere |
 | N17 | backtest: aleatório | 15,40% | 15,40% | confere |
 | N39 | métodos no backtest | 6 | 6 | confere |
-| N18 | ML 45,0% × valor ponderado 44,6% (exploratório) | 45,0 · 44,6 | a conferir depois do C1 (exige ler o Python) | pendente |
-| N40 | "21 consultas"; Python 3.13 | 21; 3.13 | a conferir depois do C1 | pendente |
+| N18 | ML 45,0% × valor ponderado 44,6% (exploratório) | 45,0 · 44,6 | ML 45,03% = 45,03% = 45,03% = 45,03% = 45,03% (5 sementes) · valor ponderado por dia exato 44,65%; mesmo universo do backtest: sim | confere |
+| N40 | "21 consultas" em auditoria_sql.py | 21 | 21 (Q01–Q21, mais a Q12b) | confere |
 
-Conferem: 32. Divergem: 6. Pendentes: 2.
+Conferem: 38. Divergem: 2. Pendentes: 0.
 
 ## Hipóteses
 
 ### H1, H2, H11 e sensibilidade: o backtest muda com as escolhas?
 
-| Variante | valor ponderado | faixas e preço | preço sem parados | só preço | chance só com concluídos | aleatório |
+| Variante | valor ponderado | situação e preço ("faixas e preço") | preço sem parados | só preço | chance só com concluídos | aleatório |
 |---|---|---|---|---|---|---|
-| pré-registrado (faixas do AGENTS, corte 138, ≥) | 44,25% | 32,69% | 40,10% | 36,17% | 38,08% | 15,40% |
-| H1: faixas de 30 em 30 dias | 43,81% | 32,69% | 40,10% | 36,17% | 38,07% | 15,40% |
-| H1: chance por dia exato | 44,63% | 23,23% | 40,10% | 36,17% | 38,65% | 15,40% |
-| H2: corte = maior ciclo observado em T | 44,25% | 32,69% | 40,10% | 36,17% | 38,08% | 15,40% |
-| sensibilidade: em risco com > | 44,41% | 32,69% | 40,10% | 36,17% | 38,08% | 15,40% |
-| H11: só as fotos de 31/08 e 30/09 | 42,97% | 36,13% | 36,70% | 31,59% | 33,67% | 14,17% |
-| H11: curva só com iniciados a partir de 01/03/2017 | 36,02% | 33,57% | 40,10% | 36,17% | 38,08% | 15,40% |
+| reconciliado (faixas do AGENTS, corte 138, em risco com >) | 44,41% | 43,16% | 40,10% | 36,17% | 32,23% | 15,40% |
+| H1: faixas de 30 em 30 dias | 44,14% | 43,16% | 40,10% | 36,17% | 32,23% | 15,40% |
+| H1: chance por dia exato | 44,65% | 43,16% | 40,10% | 36,17% | 32,23% | 15,40% |
+| H2: corte = maior ciclo observado em T | 44,41% | 43,16% | 40,10% | 36,17% | 32,23% | 15,40% |
+| pré-registrado no C1: em risco com ≥ | 44,25% | 43,16% | 40,10% | 36,17% | 32,23% | 15,40% |
+| situação com a fronteira da preparação (esfriando a partir de 91) | 44,41% | 43,35% | 40,10% | 36,17% | 32,23% | 15,40% |
+| H11: só as fotos de 31/08 e 30/09 | 42,97% | 40,99% | 36,70% | 31,59% | 24,74% | 14,17% |
+| H11: curva só com iniciados a partir de 01/03/2017 | 36,02% | 43,16% | 40,10% | 36,17% | 32,23% | 15,40% |
 
 H2: maior ciclo observado em cada foto: 30/06/2017 = 138; 31/07/2017 = 138; 31/08/2017 = 138; 30/09/2017 = 138; em 31/12/2017 = 138.
 H11: maior ciclo entre os iniciados a partir de 01/03/2017 = 138 (5.739 concluídos).
 H11: iniciados em 2016 = 358; em jan–fev/2017 = 827.
-H11: curva em 31/12 só com iniciados a partir de 01/03/2017: 0: 47,3% (4.806) · 30: 41,6% (2.901) · 60: 38,8% (2.588) · 90: 26,1% (1.765) · 104: 14,1% (1.395) · 120: 4,9% (1.173).
-Curva pré-registrada em 31/12, com n em risco: 0: 49,8% (5.991) · 30: 46,4% (4.025) · 60: 44,2% (3.649) · 90: 33,6% (2.508) · 104: 22,1% (1.913) · 120: 9,9% (1.502).
-Sensibilidade (>): 0: 49,8% · 30: 46,4% · 60: 44,0% · 90: 32,9% · 104: 21,2% · 120: 9,1%.
-Sensibilidade (>) nos números que divergem: N13 só concluídos aos 14 e 90 dias = 68,66% · 71,13%; N16 valor ponderado = US$ 195.380; N17 valor ponderado = 44,41%.
+H11: curva em 31/12 só com iniciados a partir de 01/03/2017: 0: 47,3% (4.806) · 30: 41,7% (2.899) · 60: 38,6% (2.565) · 90: 25,6% (1.740) · 104: 13,5% (1.378) · 120: 4,3% (1.163).
+Curva reconciliada (>) em 31/12, com n em risco: 0: 49,8% (5.991) · 30: 46,4% (4.021) · 60: 44,0% (3.621) · 90: 32,9% (2.465) · 104: 21,2% (1.881) · 120: 9,1% (1.480).
+Pré-registrado no C1 (≥): 0: 49,8% · 30: 46,4% · 60: 44,2% · 90: 33,6% · 104: 22,1% · 120: 9,9%.
+Pré-registrado no C1 (≥) nos números que divergiam: N13 só concluídos aos 14 e 90 dias = 68,64% · 71,26%; N16 valor ponderado = US$ 199.308.
 H11: coorte de cada foto com a curva só de iniciados a partir de 01/03/2017: 30/06/2017 = 0; 31/07/2017 = 379; 31/08/2017 = 1.258; 30/09/2017 = 2.022 (coorte vazia = chance 0 para todos = ordem pelo ID).
+| H11: curva limpa (iniciados a partir de 01/03/2017), só 31/08 e 30/09 | 43,10% | 40,99% | 36,70% | 31,59% | 24,74% | 14,17% |
+
+Calibração: chance prevista pela curva em T para os abertos com até 138 dias × fração ganha até 31/12/2017
+
+| Foto | Curva | Coorte | Abertos | Prevista | Realizada | Por faixa (prevista → realizada, n) |
+|---|---|---|---|---|---|---|
+| 31/07/2017 | cheia | 1.564 | 1.982 | 55,2% | 37,4% | 0: 60% → 28% (702) · 30: 57% → 54% (519) · 60: 56% → 46% (474) · 90: 50% → 32% (116) · 104: 39% → 11% (85) · 120: 22% → 1% (86) |
+| 31/07/2017 | limpa (desde 01/03/2017) | 379 | 1.982 | 51,3% | 37,4% | 0: 60% → 28% (702) · 30: 53% → 54% (519) · 60: 52% → 46% (474) · 90: 46% → 32% (116) · 104: 22% → 11% (85) · 120: 2% → 1% (86) |
+| 31/08/2017 | cheia | 2.443 | 1.857 | 51,7% | 34,3% | 0: 56% → 43% (625) · 30: 55% → 22% (615) · 60: 54% → 50% (314) · 90: 44% → 44% (118) · 104: 32% → 25% (102) · 120: 17% → 4% (83) |
+| 31/08/2017 | limpa (desde 01/03/2017) | 1.258 | 1.857 | 45,3% | 34,3% | 0: 52% → 43% (625) · 30: 51% → 22% (615) · 60: 49% → 50% (314) · 90: 31% → 44% (118) · 104: 11% → 25% (102) · 120: 1% → 4% (83) |
 
 H11: inícios e conclusões por mês
 
@@ -90,16 +101,18 @@ H11: inícios e conclusões por mês
 | 2017-11 | 283 | 406 | 362 |
 | 2017-12 | 121 | 511 | 140 |
 
-Curva "só concluídos" nas mesmas faixas: 0: 63,2% · 30: 68,2% · 60: 68,7% · 90: 71,3% · 104: 70,5% · 120: 75,1%.
+Curva "só concluídos" nas mesmas faixas: 0: 63,2% · 30: 68,2% · 60: 68,6% · 90: 71,1% · 104: 70,4% · 120: 75,6%.
 
 ### H3 e H4: o ganho do valor ponderado é real? A métrica discrimina?
 
 | Comparação (unidade = vendedor, 4 fotos somadas) | Diferença | IC 95% (bootstrap) | p (troca de sinais) |
 |---|---|---|---|
-| valor ponderado − preço sem parados | 4,15 p.p. | 1,97 a 6,82 p.p. | 0,0006 |
-| valor ponderado − faixas e preço | 11,56 p.p. | 6,26 a 18,22 p.p. | 0,0000 |
-| valor ponderado − só preço | 8,08 p.p. | 4,55 a 12,33 p.p. | 0,0001 |
-| valor ponderado − chance só com concluídos | 6,17 p.p. | 2,67 a 10,11 p.p. | 0,0010 |
+| valor ponderado − preço sem parados | 4,31 p.p. | 1,99 a 7,21 p.p. | 0,0006 |
+| valor ponderado − situação e preço ("faixas e preço") | 1,25 p.p. | -0,19 a 2,91 p.p. | 0,1253 |
+| valor ponderado − só preço | 8,23 p.p. | 4,58 a 12,67 p.p. | 0,0001 |
+| valor ponderado − chance só com concluídos | 12,17 p.p. | 6,65 a 18,59 p.p. | 0,0001 |
+| ML (semente 0) − valor ponderado por dia exato (mesmo script) | 0,38 p.p. | -3,24 a 3,48 p.p. | 0,8292 |
+| ML (semente 0) − valor ponderado por faixas (D5) | 0,62 p.p. | -3,32 a 3,98 p.p. | 0,7402 |
 
 H4 30/06/2017: 30 vendedores; abertos por vendedor de 18 a 118 (mediana 48); com 10 ou menos: 0. Corte: 138.
 H4 31/07/2017: 30 vendedores; abertos por vendedor de 22 a 166 (mediana 71); com 10 ou menos: 0. Corte: 138.
@@ -161,6 +174,6 @@ Mês do trimestre: χ² p = 3.76e-123.
 
 H6: close_value ÷ preço de lista nos 4.238 ganhos: mínimo 0,66, máximo 1,34, média 0,996; dentro de ±10%: 68,9%.
 H7: maior ciclo dos ganhos = 138; dos perdidos = 138. Engaging com data de conclusão: 0.
-H8: "de cada 10" por faixa: 0: 49,8% → 5 · 30: 46,4% → 5 · 60: 44,2% → 4 · 90: 33,6% → 3 · 104: 22,1% → 2 · 120: 9,9% → 1.
+H8: "de cada 10" por faixa: 0: 49,8% → 5 · 30: 46,4% → 5 · 60: 44,0% → 4 · 90: 32,9% → 3 · 104: 21,2% → 2 · 120: 9,1% → 1.
 H10 (31/12): vendedores com "Foque agora" não vazia = 21; tamanho da lista de 1 a 31; dos 10 primeiros por valor ponderado, em média 88,6% também são os 10 mais caros; listas idênticas em 9 vendedores.
 Setores grafados no accounts.csv: employment, entertainment, finance, marketing, medical, retail, services, software, technolgy, telecommunications.

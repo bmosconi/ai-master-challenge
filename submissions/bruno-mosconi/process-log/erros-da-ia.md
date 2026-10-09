@@ -2,8 +2,32 @@
 
 Registra só erros reais desta etapa, com evidência. Nada suavizado nem exagerado.
 
-Inclui os erros do material de partida que a revisão inicial confirmar. Nesses casos, "Quem percebeu" é "Claude Code, revisão inicial".
+Inclui os erros do material de partida que a revisão inicial confirmou. Nesses casos, "Quem percebeu" é "Claude Code, revisão inicial", ou o agente que apontou. A exceção é o viés de sobrevivência (D24): ele foi percebido na preparação e só reproduzido aqui.
+
+Os detalhes de cada item estão em `01-revisao-inicial.md`.
+
+## Erros do material de partida (preparação com o Claude, modo Cowork)
 
 | # | Data | Ferramenta | O erro | Quem percebeu | Como foi corrigido | Evidência |
 |---|---|---|---|---|---|---|
-| | | | | | | |
+| P-1 | preparação; reproduzido em 09/10/2026 | Claude (Cowork) | **Viés de sobrevivência na chance pela idade.** A chance foi calculada só com negócios concluídos, o que faz ela **subir** com a idade (68,7% para quem passou de 14 dias, 71,1% para quem passou de 90), quando na coorte ela **cai** (49,8% → 9,1%). Usada no backtest, essa curva captura 32,23% da receita, contra 44,41% da curva correta | [[Bruno preenche]] (D24) | Já tinha sido corrigido na preparação (coorte sem viés). Reproduzido na revisão: `npm run auditoria`, N13, e método "chance só com concluídos" | `solution/analysis/saidas/auditoria-ts.md`; `backtest_referencia.py:18-21` |
+| P-2 | 09/10/2026 | Claude (Cowork) | **Erro de um dia em "faixas e preço".** O método trata 90 dias como "no prazo" (`a<=90`), mas a D2 diz que "esfriando" começa em 90. Além disso, o nome escondia o método real: situação, depois preço | Claude Code, revisão inicial (a divergência 43,35% × 32,69% levou à leitura do código) | No TS, o método virou "situação e preço", com a fronteira da D2: 43,16%. A fronteira do Python reproduz os 43,35% | R2 em `01-revisao-inicial.md`; `backtest_referencia.py:26` |
+| P-3 | 09/10/2026 | Claude (Cowork) | **Comparação indevida na análise §7.** Pôs o 45,0% do ML (backtest exploratório) ao lado do 44,4% do backtest de referência. No exploratório, o valor ponderado é por dia exato e dá 44,6%. A significância nunca foi testada | Claude Code, revisão inicial (P4) | Teste pareado por vendedor: ML − valor ponderado = +0,38 p.p. (IC 95% −3,24 a +3,48; p = 0,83). **Não significativo** | `significancia_ml.py`; `auditoria-ts.md`, H3 |
+| P-4 | 09/10/2026 | Claude (Cowork) | "82% dos negócios com data" estão parados: na verdade, são 82,2% do **valor**; dos negócios, são 81,2% | Claude Code, revisão inicial (P5) | Texto corrigido no C2 | `auditoria-ts.md`, N20 |
+| P-5 | 09/10/2026 | Claude (Cowork) | O resumo das regras (AGENTS §2.2) omitiu a dica do enunciado sobre "tamanho da conta", e nenhuma análise testou receita ou funcionários da empresa | critico, rodada 1 do plano (conferido pelo orquestrador) | Teste feito (H9). A correção do AGENTS §2.2 foi proposta ao Bruno | enunciado:96; `AGENTS.md`:66-71 |
+| P-6 | 09/10/2026 | Claude (Cowork) | O CA7 e o AGENTS:231 mandavam o TypeScript **reproduzir** os números do Python, que eram justamente o que a revisão auditava | critico, rodada 1 do plano | D22: TS e Python precisam concordar; se divergirem, a revisão decide e registra o motivo | `decisoes.md`, D22 |
+| P-7 | 09/10/2026 | Claude (Cowork) | Os documentos dizem que vendedor e região "não mudam" o resultado. Mas a própria auditoria SQL da preparação (Q12) mostra que a fração de negócios que nunca concluem varia por vendedor (p = 5,7e-29). O argumento da D3 ficou incompleto | Claude Code, revisão inicial (H5); revisor (V8) | Proposta ao Bruno: o argumento passa a ser "não muda a ordem da lista do vendedor" (G1) | `auditoria_sql.md`, Q12; `auditoria-ts.md`, H5 |
+| P-8 | 09/10/2026 | Claude (Cowork) | `como-escalar.md` cita como prova "o seletor de data mostra a curva mudando", que não existe; o `analysis/README.md` atribuía a falta de determinismo do exploratório à causa errada | Claude Code (P10); revisor (V3) | Textos corrigidos no C2 | `como-escalar.md`:32; `backtest_exploratorio.py`:34, 63 |
+| P-9 | 09/10/2026 | Claude (Cowork) | Referências quebradas: o plano cita arquivos que não existem; o AGENTS lista `npm run backtest`, que não existe; o `FONTE.md` usa `sha256sum`, que o macOS não tem; o `critico.md` aponta para a seção errada | revisor (V9) | Corrigidas no C2. O `critico.md` ficou como proposta, porque está em `.claude/` | `01-revisao-inicial.md`, V9 |
+
+## Erros do Claude Code nesta etapa
+
+| # | Data | Ferramenta | O erro | Quem percebeu | Como foi corrigido | Evidência |
+|---|---|---|---|---|---|---|
+| C-1 | 09/10/2026 | Claude Code (Opus 5.5, orquestrador) | **Definição pré-registrada errada:** "em risco na faixa b" como duração ≥ b. Um negócio aberto com idade *a* só é comparável a quem durou mais de *a* | Claude Code: a sensibilidade com ">" reproduziu os números declarados, e a justificativa foi conferida antes de ler o Python | Padrão trocado para ">" no C2. A coluna C1 ficou como estava | R1; teste "a definição pré-registrada '>=' inclui quem concluiu no próprio dia" |
+| C-2 | 09/10/2026 | Claude Code | Duas contas à mão erradas em casos de teste: chance 2/4 onde era 2/7, porque esqueci que os parados entram na coorte; captura 70 onde era 0, porque com 11 negócios no prazo o D001 fica fora dos 10 primeiros | Claude Code: revisão do caso antes de rodar e teste falhando | O código não mudou; os casos foram corrigidos | `rules.test.ts`; `backtest.test.ts` |
+| C-3 | 09/10/2026 | Claude Code | A auditoria do C1 aceitava ±US$ 5 mil no N16 sem regra pré-registrada, e a revisão marcava o mesmo número como divergente | revisor (V7) | Regra única de tolerância; contagem do C1 refeita: 31 conferem, 7 divergem, 2 pendentes | `01-revisao-inicial.md`, "Tolerâncias" |
+| C-4 | 09/10/2026 | Claude Code | Faltava teste com os números reais. Uma regressão, ou um método que lesse a receita futura, passaria com o `check` verde | revisor (V4) | `reference.test.ts` e teste anti-vazamento do backtest. Conferido com um método trapaceiro, que foi pego | `reference.test.ts` |
+| C-5 | 09/10/2026 | Claude Code | Desvio do plano: o critico deveria rodar em paralelo no passo 2 e só foi chamado no passo 3 | Claude Code | Chamado no passo 3, com o recálculo pronto | este arquivo |
+| C-6 | 09/10/2026 | Claude Code | Rodar `auditoria_sql.py` de novo sobrescreveu a saída versionada da preparação (só mudou a ordem de linhas empatadas) | Claude Code (`diff` da saída depois de rodar) | `git restore` do arquivo | `01-revisao-inicial.md`, passo 3 |
+| C-7 | 09/10/2026 | Claude Code | A primeira checagem das versões Python usou `pip download -d /dev/null`, um destino inválido, e informou "indisponível" para todos os pacotes | Claude Code (resultado implausível) | Refeita com `pip index versions`: todas existem para o Python 3.12 | saída na sessão |
