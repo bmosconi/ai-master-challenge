@@ -12,7 +12,7 @@
 
 ## Executive Summary
 
-[[PREENCHER ao final: 3–5 frases sobre o que foi construído, o que os dados mostraram e a principal recomendação. Sugestão de núcleo: os 1.589 negócios com data somam US$ 3,9 mi a preço de lista, mas o valor ponderado é cerca de US$ 195 mil, porque 82% desse valor está parado há mais de 138 dias; a ferramenta ordena cada vendedor pelo valor ponderado e explica cada posição numa frase.]]
+[[PREENCHER ao final: 3–5 frases sobre o que foi construído, o que os dados mostraram e a principal recomendação. Sugestão de núcleo: os 1.589 negócios com data somam US$ 3,9 mi a preço de lista, mas o valor ponderado é cerca de US$ 183 mil, porque 82% desse valor está parado há mais de 138 dias; a ferramenta ordena cada vendedor pelo valor ponderado e explica cada posição numa frase.]]
 
 ---
 
@@ -33,6 +33,15 @@ Antes de construir, todo o material de partida foi revisado e os números foram 
 
 [[PREENCHER: fórmula, faixas de idade, listas, o que foi testado e descartado (vendedor, produto, gestor, regional, setor, empresa), com p-valores e backtest]]
 
+**Validação no passado, com duas coortes.** A regra foi testada em fotos antigas do funil: em cada data, o app só usa o que se sabia naquele dia. As duas formas de tratar o início cortado da base chegam à mesma conclusão: o valor ponderado capta mais receita que ordenar por preço.
+
+| Coorte | Fotos com histórico suficiente | Valor ponderado − só preço |
+|---|---|---|
+| Entrada tardia (regra do app) | 31/07, 31/08 e 30/09/2017 | +7,66 p.p. (IC 95% de 3,49 a 12,62) |
+| Limpa (sensibilidade) | só 30/09/2017 | +18,69 p.p. (IC 95% de 12,28 a 25,57) |
+
+Fonte: `npm run auditoria`, seção "Regra final (G1)".
+
 ### Setup
 
 [[PREENCHER: Node 22.18 ou superior, `npm ci`, `npm run dev`, `npm run check`, `npm run auditoria`, URL]]
@@ -43,7 +52,9 @@ Antes de construir, todo o material de partida foi revisado e os números foram 
 
 ### Limitações e como escalar
 
-[[PREENCHER: o que não faz. Resumo de "Como escalar" em 5–8 linhas, apontando para `docs/como-escalar.md`.]]
+- **Hipótese da entrada tardia.** Negócios iniciados antes de março de 2017 só estão na base se ainda estavam abertos em 01/03/2017; por isso entram na conta a partir da idade que tinham nessa data. A hipótese é que o corte foi exatamente esse: nenhuma conclusão aparece antes de 01/03/2017, e os inícios sobem de 7 para cerca de 800 por mês. Se ela não valer, a coorte limpa, que não depende dela, chega à mesma conclusão (tabela acima).
+
+[[PREENCHER: o resto do que não faz. Resumo de "Como escalar" em 5–8 linhas, apontando para `docs/como-escalar.md`.]]
 
 ---
 
@@ -62,7 +73,7 @@ Antes desta etapa, houve uma preparação com o Claude (Cowork) como assistente.
 
 ### Workflow
 
-[[PREENCHER ao final, a partir dos commits e de `process-log/`]]
+[[PREENCHER ao final, a partir dos commits e de `process-log/`. A leitura do problema (`process-log/00-leitura-do-problema.md`) não entra como previsão dos resultados: as hipóteses vieram do material de partida. Contar o que a revisão confirmou e o que corrigiu (o vendedor não muda a taxa de ganho, mas muda quanto do funil fica parado).]]
 
 ### Onde a IA errou e como corrigi
 

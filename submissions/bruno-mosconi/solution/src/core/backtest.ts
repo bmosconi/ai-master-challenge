@@ -10,6 +10,7 @@ import {
 	chanceCurve,
 	chanceForAge,
 	concludedOnlyByDay,
+	DEFAULT_TRUNCATION,
 	hasEnoughHistory,
 	maxCycleBy,
 	observedDuration,
@@ -91,7 +92,7 @@ export interface BacktestOptions {
 	cutoff?: "fixed" | "observed"; // 138 fixo ou o maior ciclo observado em T (H2)
 	minEngage?: number; // curva só com iniciados a partir deste dia (H11)
 	coolingFrom?: number; // início de "esfriando" (D2: 90; a preparação usou 91)
-	truncation?: Truncation; // padrão "clean" (G1)
+	truncation?: Truncation; // padrão DEFAULT_TRUNCATION (D27)
 	/** Só as fotos com histórico suficiente (CA6). Padrão: sim, quando truncation ≠ "none". */
 	onlyEligible?: boolean;
 }
@@ -175,7 +176,7 @@ export function runBacktest(
 	const cutoffs: number[] = [];
 	const used: number[] = [];
 	const onlyEligible =
-		opts.onlyEligible ?? (opts.truncation ?? "clean") !== "none";
+		opts.onlyEligible ?? (opts.truncation ?? DEFAULT_TRUNCATION) !== "none";
 	for (const t of opts.snapshots ?? SNAPSHOTS) {
 		const r = rankAt(ds, t, opts);
 		if (onlyEligible && !r.eligible) continue;

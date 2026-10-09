@@ -1,6 +1,6 @@
 # Revisão inicial do material de partida
 
-Status: **G1 aprovado e aplicado (09/10/2026). Duas escolhas pendentes com o Bruno (fim do arquivo): coorte limpa × entrada tardia, e valor ponderado × situação e preço.**
+Status: **concluída. G1 aprovado e aplicado (09/10/2026), com as duas escolhas finais respondidas pelo Bruno (fim do arquivo).**
 
 ## Plano
 
@@ -539,7 +539,7 @@ O que está fraco, o que eu mudaria e por quê, em ordem de prioridade. Cada ite
 
 ## G1 (09/10/2026): respostas do Bruno e o que foi feito
 
-As respostas estão em `decisoes.md` (D27–D32). A leitura do Bruno (`00-leitura-do-problema.md`) foi criticada e versionada sem alteração (commit `a2fb335`): as hipóteses dela foram confirmadas pela revisão. A da linha 15 só em parte: o vendedor muda quanto fica parado.
+As respostas estão em `decisoes.md` (D27–D32). A leitura do Bruno (`00-leitura-do-problema.md`) foi criticada e versionada sem alteração (commit `a2fb335`). As hipóteses dela vieram do material de partida, como o próprio texto diz. A revisão confirmou as três primeiras (funil inflado, viés da taxa só com concluídos, "sem empresa" vazando o desfecho) e corrigiu a quarta: o vendedor não muda a taxa de ganho, mas muda quanto do funil fica parado.
 
 **1. Coorte limpa, com o backtest refeito** (`auditoria-ts.md`, "Regra final (G1)").
 
@@ -578,3 +578,14 @@ As respostas estão em `decisoes.md` (D27–D32). A leitura do Bruno (`00-leitur
 |---|---|---|
 | G1-a | Coorte limpa (1 foto de validação) ou entrada tardia (3 fotos)? | **Entrada tardia** |
 | G1-b | Os 3 exemplos convenceram? A "Foque agora" fica no valor ponderado, com o custo de esperar no painel? | **Sim, valor ponderado mais custo de esperar** |
+
+### Respostas do Bruno (09/10/2026)
+
+- **G1-a: entrada tardia**, com três condições, todas aplicadas:
+  - a coorte limpa fica como análise de sensibilidade. O "Como funciona" e o README mostram que as duas chegam à mesma conclusão: o valor ponderado ganha de "só preço" (+7,66 p.p. em 3 datas com entrada tardia; +18,69 p.p. na única data da limpa);
+  - a hipótese da entrada tardia vai para as Limitações, com o método numa frase;
+  - a D27 registra por que a limpa perdeu: validação numa data só, e 31/08 excluída por 0,01 p.p. do limite de IC.
+- **G1-b: valor ponderado.** O custo de esperar entra **sem prever queda de chance**. Os saltos (de 13,5% para 4,3% em 3 dias) vêm dos limites das faixas, não de uma queda real dia a dia, e mostrá-los como fato contradiz a D28. Ficam só "Esfria em N dias" (até 90) e "Fica parado em N dias" (até 138), como selo e como linha no painel de motivo, sem mudar a ordem (D30). **A frase que este arquivo recomendou no item 4 ("em 4 dias, a chance cai de 4 para 3 em cada 10") foi recusada por esse motivo.**
+- **Leitura do problema:** o README não a apresenta como previsão dos resultados. Conta o que a revisão confirmou e o que corrigiu.
+
+Aplicação no código: o padrão passou a ser `DEFAULT_TRUNCATION = "lateEntry"` (`rules.ts`, também usado por `backtest.ts`); `reference.test.ts` fixa as duas coortes; `npm run auditoria` foi refeito. Efeito colateral registrado: com a regra final, dos 10 primeiros por valor ponderado, em média 88,6% também estão entre os 10 mais caros, contra 85,7% com a limpa (H10).

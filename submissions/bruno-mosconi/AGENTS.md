@@ -187,7 +187,7 @@ Comandos (atualize esta lista se mudar; os marcados com * ainda não existem e e
 | D2 | Idade = T − `engage_date`. No prazo: 0–89 dias. Esfriando: 90–138. Parado: mais de 138. "Em andamento" é o conjunto de todos os negócios abertos. |
 | D3 | Vendedor e produto **não** entram no score (D29). Produto não muda nada: p = 0,372 entre concluídos e 0,718 na coorte. O vendedor não muda a taxa de ganho entre concluídos (p = 0,264; 36–38% dos sorteios dão diferença igual ou maior), mas muda **quanto fica parado** (p < 0,001 na coorte). Esse efeito multiplica todos os negócios do vendedor e **não muda a ordem da lista dele**. Na visão do gestor, a fração parada por vendedor aparece como situação do funil, não como ranking, com o aviso de que os dados não separam vendedor, carteira e região. A tela "Como funciona" mostra o que foi testado e descartado. |
 | D4 | Prospecting vai na lista "Inicie contato", ordenada por preço de lista. |
-| D5 | Score = **valor ponderado** em US$ = chance pela idade × preço de lista. É critério de ordem, não previsão de receita (a curva superestima: ver a calibração). Frase (D28): "Dos negócios que chegaram a N dias ainda em andamento, X de cada 10 viraram venda." Mantido por enquanto contra "situação e preço" (D30). |
+| D5 | Score = **valor ponderado** em US$ = chance pela idade × preço de lista. É critério de ordem, não previsão de receita (a curva superestima: ver a calibração). Frase (D28): "Dos negócios que chegaram a N dias ainda em andamento, X de cada 10 viraram venda." Mantido contra "situação e preço" (D30), com os selos "Esfria em N dias" e "Fica parado em N dias", que não mudam a ordem. |
 | D6 | Publicar na Vercel, só após autorização. |
 | D7 | Sem LLM no app. |
 | D8 | React + Vite + TypeScript, sem servidor. |
@@ -202,14 +202,15 @@ Comandos (atualize esta lista se mudar; os marcados com * ainda não existem e e
 | D18 em diante | Em `process-log/decisoes.md`, com data, quem decidiu e evidência. |
 
 **Chance pela idade (sem viés de sobrevivência)**, calculada na data T:
-- **Coorte:** negócios não-Prospecting com `engage_date` ≤ T − 138 dias **e a partir da primeira conclusão observada até T** (01/03/2017), porque a base só traz os negócios antigos que sobreviveram até essa data (D27, H11). O desfecho é o visto em T; quem ainda está aberto conta como "não ganhou".
+- **Coorte:** negócios não-Prospecting com `engage_date` ≤ T − 138 dias. O desfecho é o visto em T; quem ainda está aberto conta como "não ganhou".
+- **Entrada tardia (D27):** negócios iniciados antes de março de 2017 só estão na base se ainda estavam abertos em 01/03/2017 (a primeira conclusão observada); por isso entram na conta a partir da idade que tinham nessa data. Na faixa b, um negócio só conta se início + b ≥ 01/03/2017.
 - **Faixa que começa em b dias:** chance = ganhos ÷ negócios da coorte que ainda estavam abertos depois de b dias, ou seja, com duração **maior que** b. Um negócio aberto com idade *a* só é comparável a quem durou mais de *a* (revisão inicial, R1).
 - **Faixas:** 0–29, 30–59, 60–89, 90–103, 104–119, 120–138. Mais de 138 dias: chance 0.
-- **Valores em 31/12/2017 (regra final):** 47,3% · 41,7% · 38,6% · 25,6% · 13,5% · 4,3%; a coorte tem 4.806 negócios (iniciados de 01/03 a 15/08/2017). Sem a correção do corte da base (regra da preparação, 5.991 negócios): 49,8% · 46,4% · 44,0% · 32,9% · 21,2% · 9,1%.
+- **Valores em 31/12/2017 (regra final):** 47,3% · 42,9% · 41,2% · 30,8% · 19,9% · 8,6%, com 5.991 negócios na coorte (4.806 na faixa 0). Sensibilidade, coorte limpa (só iniciados a partir de 01/03/2017, 4.806 negócios): 47,3% · 41,7% · 38,6% · 25,6% · 13,5% · 4,3%. Sem correção (regra da preparação): 49,8% · 46,4% · 44,0% · 32,9% · 21,2% · 9,1%.
 - **Errado, não usar:** calcular a chance só com negócios concluídos. Isso dá 68,7% aos 14 dias e 71,1% aos 90.
 
 **Listas por vendedor:**
-1. "Foque agora": abertos com até 138 dias, por valor ponderado. Selo "Esfriando" a partir de 90 dias.
+1. "Foque agora": abertos com até 138 dias, por valor ponderado. Selo "Esfriando" a partir de 90 dias. Prazo (D30): "Esfria em N dias" até os 90 e "Fica parado em N dias" até os 138, no negócio e no painel de motivo. O prazo não muda a ordem e não prevê queda de chance.
 2. "Revisar ou encerrar": parados há mais de 138 dias.
 3. "Inicie contato": Prospecting, por preço (só em 31/12/2017).
 
@@ -218,9 +219,9 @@ Empate: desempate pelo `opportunity_id`.
 **Em 31/12/2017:**
 - Dos 1.589 Engaging: 110 no prazo, 188 esfriando, 1.291 parados.
 - Preço de lista desses 1.589: US$ 3,89 mi, dos quais 82% estão parados. A prospecção (sem data) soma mais US$ 1,07 mi.
-- Valor ponderado: US$ 154.880 com a regra final (US$ 195.380 sem a correção). É critério de ordem, não previsão de receita.
+- Valor ponderado: US$ 182.928 com a regra final (US$ 154.880 com a coorte limpa; US$ 195.380 sem a correção). É critério de ordem, não previsão de receita.
 
-**Backtest com a regra final** (só as datas com histórico suficiente): sobra só 30/09/2017. Valor ponderado 47,70%, contra 29,01% de "só preço": **+18,69 p.p. (IC 95% de 12,28 a 25,57)** (CA3). Com entrada tardia (a alternativa da D27): 31/07, 31/08 e 30/09, +7,66 p.p. (IC de 3,49 a 12,62). Fonte: `npm run auditoria`, "Regra final (G1)".
+**Backtest com a regra final** (só as datas com histórico suficiente): 31/07, 31/08 e 30/09/2017. Valor ponderado 40,86%, contra 33,20% de "só preço": **+7,66 p.p. (IC 95% de 3,49 a 12,62)** (CA3). Contra "situação e preço", empate: +0,12 p.p. (IC −1,51 a 2,11; p = 0,90). Sensibilidade, coorte limpa: sobra só 30/09, com +18,69 p.p. (IC de 12,28 a 25,57). As duas chegam à mesma conclusão. Fonte: `npm run auditoria`, "Regra final (G1)".
 
 **Backtest de referência da preparação** (sem a correção do corte; fotos em 30/06, 31/07, 31/08 e 30/09/2017; 10 primeiros por vendedor; receita ganha em até 90 dias):
 

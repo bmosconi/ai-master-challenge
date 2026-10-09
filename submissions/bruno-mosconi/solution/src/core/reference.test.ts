@@ -1,7 +1,7 @@
 // Números de referência com os dados reais. Uma regressão no núcleo quebra o `npm run check`.
 // - "none": a regra da preparação, reconciliada com o Python (01-revisao-inicial.md, R1–R4).
-// - "clean": a regra final (G1): coorte só com iniciados a partir da primeira conclusão observada.
-// - "lateEntry": a alternativa considerada (decisoes.md).
+// - "lateEntry": a regra final (D27): cada negócio conta a partir da idade que tinha em 01/03/2017.
+// - "clean": a análise de sensibilidade: coorte só com iniciados a partir de 01/03/2017.
 
 import { describe, expect, it } from "vitest";
 import { loadDataset } from "../node/load.ts";
@@ -48,7 +48,7 @@ describe("dados reais (31/12/2017)", () => {
 			);
 		expect(cohort(ds.deals, T, { truncation: "none" })).toHaveLength(5991);
 		expect(pct("none")).toEqual([49.8, 46.4, 44.0, 32.9, 21.2, 9.1]);
-		expect(cohort(ds.deals, T)).toHaveLength(4806);
+		expect(cohort(ds.deals, T, { truncation: "clean" })).toHaveLength(4806);
 		expect(pct("clean")).toEqual([47.3, 41.7, 38.6, 25.6, 13.5, 4.3]);
 		expect(pct("lateEntry")).toEqual([47.3, 42.9, 41.2, 30.8, 19.9, 8.6]);
 	});
@@ -78,12 +78,16 @@ describe("dados reais (31/12/2017)", () => {
 		expect(
 			Math.round(f.slices["no-prazo"].weighted + f.slices.esfriando.weighted),
 		).toBe(195_380);
-		const clean = funnelAt(ds, T);
-		expect(
-			Math.round(
-				clean.slices["no-prazo"].weighted + clean.slices.esfriando.weighted,
-			),
-		).toBe(154_880);
+		const weighted = (curve = chanceCurve(ds.deals, T)) => {
+			const x = funnelAt(ds, T, curve);
+			return Math.round(
+				x.slices["no-prazo"].weighted + x.slices.esfriando.weighted,
+			);
+		};
+		expect(weighted()).toBe(182_928);
+		expect(weighted(chanceCurve(ds.deals, T, { truncation: "clean" }))).toBe(
+			154_880,
+		);
 	});
 });
 
@@ -93,27 +97,8 @@ describe("backtest", () => {
 			Object.entries(r.share).map(([k, v]) => [k, round(v * 100, 2)]),
 		);
 
-	it("regra final: só a foto de 30/09 tem histórico suficiente", () => {
+	it("regra final (entrada tardia): 31/07, 31/08 e 30/09", () => {
 		const r = runBacktest(ds);
-		expect(r.snapshots).toEqual([day("2017-09-30")]);
-		expect(shares(r)).toEqual({
-			weighted: 47.7,
-			situationThenPrice: 42.11,
-			priceNoStale: 35.14,
-			price: 29.01,
-			concludedOnly: 22.3,
-			random: 13.97,
-		});
-	});
-
-	it('CA3: com a regra final, o valor ponderado ganha de "só preço" com IC 95% acima de zero', () => {
-		const r = pairedTest(perAgent(runBacktest(ds).units, "weighted", "price"));
-		expect(r.ci95[0]).toBeGreaterThan(0);
-		expect(round(r.difference * 100, 2)).toBe(18.69);
-	});
-
-	it("entrada tardia: 31/07, 31/08 e 30/09", () => {
-		const r = runBacktest(ds, { truncation: "lateEntry" });
 		expect(r.snapshots).toEqual(SNAPSHOTS.slice(1));
 		expect(shares(r)).toEqual({
 			weighted: 40.86,
@@ -122,6 +107,30 @@ describe("backtest", () => {
 			price: 33.2,
 			concludedOnly: 29.09,
 			random: 14.07,
+		});
+	});
+
+	it('CA3: o valor ponderado ganha de "só preço" com IC 95% acima de zero, nas duas coortes', () => {
+		const gain = (truncation: Truncation) => {
+			const r = pairedTest(
+				perAgent(runBacktest(ds, { truncation }).units, "weighted", "price"),
+			);
+			return [round(r.difference * 100, 2), r.ci95[0] > 0];
+		};
+		expect(gain("lateEntry")).toEqual([7.66, true]);
+		expect(gain("clean")).toEqual([18.69, true]);
+	});
+
+	it("coorte limpa (sensibilidade): só a foto de 30/09 tem histórico suficiente", () => {
+		const r = runBacktest(ds, { truncation: "clean" });
+		expect(r.snapshots).toEqual([day("2017-09-30")]);
+		expect(shares(r)).toEqual({
+			weighted: 47.7,
+			situationThenPrice: 42.11,
+			priceNoStale: 35.14,
+			price: 29.01,
+			concludedOnly: 22.3,
+			random: 13.97,
 		});
 	});
 
@@ -158,13 +167,11 @@ describe("backtest", () => {
 });
 
 describe("calibração (H11, revisão inicial)", () => {
-	it("em 31/08, a curva prevê mais ganhos do que acontecem; a coorte limpa erra menos", () => {
+	it("em 31/08, a curva prevê mais ganhos do que acontecem, nas três regras", () => {
 		const t = day("2017-08-31");
 		const full = calibrationAt(ds, t, REFERENCE_DATE, { truncation: "none" });
-		const clean = calibrationAt(ds, t);
-		const late = calibrationAt(ds, t, REFERENCE_DATE, {
-			truncation: "lateEntry",
-		});
+		const clean = calibrationAt(ds, t, REFERENCE_DATE, { truncation: "clean" });
+		const late = calibrationAt(ds, t);
 		expect(
 			[full, clean, late, full].map((c, i) =>
 				round((i < 3 ? c.predicted : c.realized) * 100, 1),

@@ -14,12 +14,13 @@ export type AtRisk = ">=" | ">";
 /**
  * A base só traz negócios concluídos a partir da primeira conclusão observada (01/03/2017) ou ainda
  * abertos: os antigos que aparecem são os que sobreviveram até lá (revisão inicial, H11).
- * - "clean" (padrão, G1): a coorte só usa negócios iniciados a partir da primeira conclusão observada.
- * - "lateEntry": usa todos, mas um negócio só conta na faixa b se, aos b dias, já estava na janela
- *   observada (início + b ≥ primeira conclusão). É a alternativa considerada (decisoes.md).
+ * - "lateEntry" (padrão, D27): usa todos, mas um negócio só conta na faixa b se, aos b dias, já estava
+ *   na janela observada (início + b ≥ primeira conclusão).
+ * - "clean": só negócios iniciados a partir da primeira conclusão observada (análise de sensibilidade).
  * - "none": a curva da preparação, sem correção.
  */
 export type Truncation = "none" | "clean" | "lateEntry";
+export const DEFAULT_TRUNCATION: Truncation = "lateEntry";
 
 /** Meia-largura máxima do IC 95% (Wilson) aceita em qualquer faixa para a data ficar disponível. */
 export const MAX_HALF_WIDTH = 0.05;
@@ -86,7 +87,7 @@ export function cohort(
 ): Deal[] {
 	const cutoff = opts.cutoff ?? STALE_AFTER;
 	const from =
-		(opts.truncation ?? "clean") === "clean"
+		(opts.truncation ?? DEFAULT_TRUNCATION) === "clean"
 			? (firstCloseBy(deals, t) ?? Number.POSITIVE_INFINITY)
 			: Number.NEGATIVE_INFINITY;
 	return deals.filter(
@@ -107,7 +108,7 @@ export function chanceCurve(
 	const bands = opts.bands ?? BANDS;
 	const strict = (opts.atRisk ?? ">") === ">";
 	const window = firstCloseBy(deals, t) ?? Number.POSITIVE_INFINITY;
-	const late = opts.truncation === "lateEntry";
+	const late = (opts.truncation ?? DEFAULT_TRUNCATION) === "lateEntry";
 	const base = cohort(deals, t, opts).map((d) => ({
 		engage: d.engage as number,
 		dur: observedDuration(d, t),

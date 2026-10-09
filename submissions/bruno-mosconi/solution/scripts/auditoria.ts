@@ -687,12 +687,12 @@ h(`Setores grafados no accounts.csv: ${sectors.join(", ")}.`);
 h("\n## Regra final (G1): a coorte e o corte da base\n");
 const RULES: [Truncation, string][] = [
 	[
-		"clean",
-		"limpa: só iniciados a partir da primeira conclusão observada (regra final)",
+		"lateEntry",
+		"entrada tardia: todos, cada um a partir da idade que tinha em 01/03/2017 (regra final)",
 	],
 	[
-		"lateEntry",
-		"entrada tardia: todos, cada um a partir da idade que tinha em 01/03/2017 (alternativa)",
+		"clean",
+		"limpa: só iniciados a partir da primeira conclusão observada (sensibilidade)",
 	],
 	["none", "sem correção (regra da preparação)"],
 ];
