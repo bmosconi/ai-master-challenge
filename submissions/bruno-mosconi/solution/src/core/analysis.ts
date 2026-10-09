@@ -1,6 +1,7 @@
 // Números da investigação: a auditoria (scripts/auditoria.ts) e a página "Como funciona" usam
 // estas mesmas funções, para não haver uma segunda versão da regra.
 
+import { SNAPSHOTS } from "./backtest.ts";
 import { type Dataset, type Deal, priceOf } from "./data.ts";
 import {
 	agentLists,
@@ -9,6 +10,7 @@ import {
 	chanceCurve,
 	chanceForAge,
 	closedBy,
+	hasEnoughHistory,
 	observedDuration,
 	openAt,
 	REFERENCE_DATE,
@@ -136,18 +138,25 @@ export interface FunnelSlice {
 	weighted: number;
 }
 
-/** Funil em andamento em T, por situação, a preço de lista; e a prospecção à parte (D13). */
+const emptySlices = (): Record<Situation, FunnelSlice> => ({
+	"no-prazo": { deals: 0, listPrice: 0, weighted: 0 },
+	esfriando: { deals: 0, listPrice: 0, weighted: 0 },
+	parado: { deals: 0, listPrice: 0, weighted: 0 },
+});
+
+/**
+ * Funil em andamento em T, por situação, a preço de lista; e a prospecção à parte (D13).
+ * `agents` limita aos vendedores dos filtros da tela.
+ */
 export function funnelAt(
 	ds: Dataset,
 	t = REFERENCE_DATE,
 	curve: readonly BandChance[] = chanceCurve(ds.deals, t),
+	agents?: ReadonlySet<string>,
 ) {
-	const slices: Record<Situation, FunnelSlice> = {
-		"no-prazo": { deals: 0, listPrice: 0, weighted: 0 },
-		esfriando: { deals: 0, listPrice: 0, weighted: 0 },
-		parado: { deals: 0, listPrice: 0, weighted: 0 },
-	};
+	const slices = emptySlices();
 	for (const s of scoreOpen(ds, t, curve)) {
+		if (agents && !agents.has(s.deal.agent)) continue;
 		const slice = slices[situation(s.age)];
 		slice.deals++;
 		slice.listPrice += s.price;
@@ -155,7 +164,9 @@ export function funnelAt(
 	}
 	const prospects =
 		t === REFERENCE_DATE
-			? ds.deals.filter((d) => d.stage === "Prospecting")
+			? ds.deals.filter(
+					(d) => d.stage === "Prospecting" && (!agents || agents.has(d.agent)),
+				)
 			: [];
 	return {
 		slices,
@@ -470,3 +481,56 @@ export function calibrationAt(
 		bands,
 	};
 }
+
+export interface AgentStatus {
+	agent: string;
+	slices: Record<Situation, FunnelSlice>;
+	open: number; // negócios em andamento com data (no prazo + esfriando + parado)
+	focus: number; // tamanho da "Foque agora" (no prazo + esfriando)
+	prospecting: number; // só na data padrão (D13)
+}
+
+/**
+ * Situação do funil por vendedor (D29): o retrato de cada carteira, não um ranking de desempenho.
+ * Ordem: valor parado, maior primeiro (D12), depois nome.
+ */
+export function teamStatus(
+	ds: Dataset,
+	t: number,
+	agents: readonly string[],
+	curve: readonly BandChance[] = chanceCurve(ds.deals, t),
+): AgentStatus[] {
+	const byAgent = new Map<string, AgentStatus>(
+		agents.map((agent) => [
+			agent,
+			{ agent, slices: emptySlices(), open: 0, focus: 0, prospecting: 0 },
+		]),
+	);
+	for (const s of scoreOpen(ds, t, curve)) {
+		const a = byAgent.get(s.deal.agent);
+		if (!a) continue;
+		const sit = situation(s.age);
+		a.slices[sit].deals++;
+		a.slices[sit].listPrice += s.price;
+		a.slices[sit].weighted += s.weighted;
+		a.open++;
+		if (sit !== "parado") a.focus++;
+	}
+	if (t === REFERENCE_DATE)
+		for (const d of ds.deals) {
+			const a = byAgent.get(d.agent);
+			if (a && d.stage === "Prospecting") a.prospecting++;
+		}
+	return [...byAgent.values()].sort(
+		(a, b) =>
+			b.slices.parado.listPrice - a.slices.parado.listPrice ||
+			(a.agent < b.agent ? -1 : 1),
+	);
+}
+
+/** Datas do seletor (D1, ajuste): as 4 fotos do backtest e a data padrão, com o critério da D27. */
+export const availableDates = (ds: Dataset) =>
+	[...SNAPSHOTS, REFERENCE_DATE].map((t) => ({
+		t,
+		available: hasEnoughHistory(chanceCurve(ds.deals, t)),
+	}));

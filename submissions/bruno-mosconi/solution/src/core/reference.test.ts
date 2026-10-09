@@ -5,7 +5,13 @@
 
 import { describe, expect, it } from "vitest";
 import { loadDataset } from "../node/load.ts";
-import { calibrationAt, funnelAt, stageCounts } from "./analysis.ts";
+import {
+	availableDates,
+	calibrationAt,
+	funnelAt,
+	stageCounts,
+	teamStatus,
+} from "./analysis.ts";
 import {
 	METHOD_NAMES,
 	perAgent,
@@ -15,9 +21,19 @@ import {
 } from "./backtest.ts";
 import { type Deal, day, type Stage } from "./data.ts";
 import {
+	chancePhrase,
+	emptyFocus,
+	outOfTen,
+	showAccount,
+	shownWeighted,
+} from "./reason.ts";
+import {
+	agentLists,
+	bandForAge,
 	chanceCurve,
 	cohort,
 	hasEnoughHistory,
+	openAt,
 	REFERENCE_DATE,
 	type Truncation,
 } from "./rules.ts";
@@ -87,6 +103,108 @@ describe("dados reais (31/12/2017)", () => {
 		expect(weighted()).toBe(182_928);
 		expect(weighted(chanceCurve(ds.deals, T, { truncation: "clean" }))).toBe(
 			154_880,
+		);
+	});
+});
+
+describe("telas (incremento 4)", () => {
+	it("datas do seletor: 30/06 sem histórico suficiente; as outras 4 abertas", () => {
+		expect(availableDates(ds).map((d) => d.available)).toEqual([
+			false,
+			true,
+			true,
+			true,
+			true,
+		]);
+	});
+
+	it("situação por vendedor: todos os 35 aparecem e a soma bate com o funil", () => {
+		const all = ds.agents.map((a) => a.name);
+		const team = teamStatus(ds, T, all);
+		const f = funnelAt(ds, T);
+		expect(team).toHaveLength(35);
+		expect(team.filter((a) => a.open === 0)).toHaveLength(8); // 5 sem negócio + 3 sem nada aberto
+		expect(team.reduce((s, a) => s + a.slices.parado.listPrice, 0)).toBe(
+			f.slices.parado.listPrice,
+		);
+		expect(team.reduce((s, a) => s + a.focus, 0)).toBe(
+			f.slices["no-prazo"].deals + f.slices.esfriando.deals,
+		);
+		const stale = team.map((a) => a.slices.parado.listPrice);
+		expect(stale).toEqual([...stale].sort((a, b) => b - a));
+	});
+
+	it("CA4: em todo negócio da Foque agora, a frase e o score saem da mesma faixa", () => {
+		const curve = chanceCurve(ds.deals, T);
+		for (const { name } of ds.agents)
+			for (const s of agentLists(ds, T, name, curve).focus) {
+				const band = bandForAge(curve, s.age);
+				expect(band?.chance).toBe(s.chance);
+				expect(chancePhrase(band)).toContain(
+					outOfTen(s.chance) === 0
+						? "menos de 1 de cada 10"
+						: `${outOfTen(s.chance)} de cada 10`,
+				);
+			}
+	});
+
+	it("o valor ponderado exibido (preço × chance com uma casa) nunca inverte a ordem, em nenhuma data", () => {
+		let rows = 0;
+		for (const { t, available } of availableDates(ds)) {
+			if (!available) continue;
+			const curve = chanceCurve(ds.deals, t);
+			for (const { name } of ds.agents) {
+				const shown = agentLists(ds, t, name, curve).focus.map(shownWeighted);
+				rows += shown.length;
+				expect(shown).toEqual([...shown].sort((a, b) => b - a));
+			}
+		}
+		expect(rows).toBe(6016);
+	});
+
+	it("empresa fora da data padrão: em 30/09, todo negócio sem empresa ainda estava em andamento em 31/12", () => {
+		const t = day("2017-09-30");
+		const noAccount = ds.deals.filter(
+			(d) => openAt(d, t) && d.account === null,
+		);
+		expect(noAccount.length).toBeGreaterThan(1000);
+		expect(noAccount.every((d) => d.close === null)).toBe(true);
+		expect([showAccount(t), showAccount(T)]).toEqual([false, true]);
+	});
+
+	it('estado vazio da "Foque agora" em 31/12: 5 sem negócios, 6 com parados, 3 sem nada em andamento', () => {
+		const curve = chanceCurve(ds.deals, T);
+		const kinds = ds.agents.map(({ name }) =>
+			emptyFocus(
+				agentLists(ds, T, name, curve),
+				ds.deals.some((d) => d.agent === name),
+			),
+		);
+		const count = (k: string | null) => kinds.filter((x) => x === k).length;
+		expect([
+			count("sem-negocios"),
+			count("revisar"),
+			count("iniciar"),
+			count("nada-aberto"),
+			count(null),
+		]).toEqual([5, 6, 0, 3, 21]);
+	});
+
+	it("o funil filtrado por vendedores soma o funil de cada um", () => {
+		const [a, b] = ds.agents.map((x) => x.name);
+		const one = (n: string) => funnelAt(ds, T, undefined, new Set([n]));
+		const both = funnelAt(
+			ds,
+			T,
+			undefined,
+			new Set([a as string, b as string]),
+		);
+		expect(both.slices.parado.listPrice).toBe(
+			one(a as string).slices.parado.listPrice +
+				one(b as string).slices.parado.listPrice,
+		);
+		expect(both.prospecting.deals).toBe(
+			one(a as string).prospecting.deals + one(b as string).prospecting.deals,
 		);
 	});
 });

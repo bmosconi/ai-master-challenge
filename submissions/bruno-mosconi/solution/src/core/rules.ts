@@ -216,18 +216,25 @@ export function bandIndex(
 	return idx;
 }
 
-export function chanceForAge(
+/** A faixa da idade, ou null quando parado. A frase (D28) e o score usam a mesma faixa. */
+export function bandForAge(
 	curve: readonly BandChance[],
 	age: number,
 	cutoff = STALE_AFTER,
-): number {
+): BandChance | null {
 	const i = bandIndex(
 		age,
 		curve.map((c) => c.from),
 		cutoff,
 	);
-	return i < 0 ? 0 : (curve[i]?.chance ?? 0);
+	return curve[i] ?? null;
 }
+
+export const chanceForAge = (
+	curve: readonly BandChance[],
+	age: number,
+	cutoff = STALE_AFTER,
+): number => bandForAge(curve, age, cutoff)?.chance ?? 0;
 
 export type Situation = "no-prazo" | "esfriando" | "parado";
 

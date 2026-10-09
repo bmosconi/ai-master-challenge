@@ -22,7 +22,7 @@ O objetivo não é copiar uma ferramenta. É adotar o que se repete entre elas e
 
 | # | Prática de mercado | Onde aparece | No nosso app |
 |---|---|---|---|
-| 1 | Score em 3–4 faixas com nome simples, ordenado pelo número de baixo | Salesforce, Gong, Outreach, Dynamics | Chance em faixas (alta, média, baixa), lista ordenada pelo valor ponderado |
+| 1 | Score em 3–4 faixas com nome simples, ordenado pelo número de baixo | Salesforce, Gong, Outreach, Dynamics | Sem rótulo de faixa (alta, média, baixa): a chance aparece como histórico, "X de cada 10" (D28), e a lista é ordenada pelo valor ponderado |
 | 2 | Chance e valor lado a lado | Dynamics (bolha), Clari (quadrante) | Cartão mostra chance, valor e valor ponderado |
 | 3 | Dizer o que o número significa | HubSpot diz que é probabilidade; Gong diz que não é | O nosso é uma taxa histórica de verdade: "de cada 10 negócios com essa idade, X viraram venda" |
 | 4 | Explicação curta, em frase de coorte | Dynamics, HubSpot | É a frase da D5. A Microsoft usa o mesmo formato |
@@ -36,7 +36,7 @@ O objetivo não é copiar uma ferramenta. É adotar o que se repete entre elas e
 | 12 | Cada alerta com uma próxima ação | HubSpot, Outreach, Rhythm | Texto fixo, por exemplo "Retome o contato ou marque como perdido" |
 | 13 | Prospecção separada do funil ativo | Rhythm | Lista "Inicie contato" (D4) |
 
-**Ideia nossa, não vista nas ferramentas:** mostrar o custo de esperar. Exemplo: "se ficar parado mais 14 dias, a chance cai de 44% para 33%". Sai da mesma curva de chance pela idade.
+**Ideia nossa, não vista nas ferramentas:** mostrar o prazo até a próxima mudança de situação: "Esfria em N dias" (90) e "Fica parado em N dias" (depois de 138). A primeira versão desta ideia ("a chance cai de 44% para 33%") foi recusada na D30: os saltos vêm dos limites das faixas, não de uma queda real dia a dia.
 
 **O que não cabe nos nossos dados:**
 - Sinais de atividade (e-mail, reunião, ligação, "ghosted").

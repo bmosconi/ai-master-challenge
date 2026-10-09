@@ -159,10 +159,10 @@ Comandos (atualize esta lista se mudar; os marcados com * ainda não existem e e
 |---|---|
 | `npm run check` | tipos, lint e testes; precisa passar antes de qualquer commit |
 | `npm run auditoria` | recalcula os números da seção 7 (inclusive o backtest) e grava `solution/analysis/saidas/auditoria-ts.md` |
-| `npm run dev` * | servidor local |
-| `npm run build` * | build de produção |
+| `npm run dev` | servidor local |
+| `npm run build` | build de produção |
 | `npm run bench` * | teste de desempenho com os dados multiplicados por 100 |
-| `npm run e2e` / `npm run prints` * | testes de navegador e prints para o process log |
+| `npm run e2e` / `npm run prints` | testes de navegador (build de produção) e prints em `process-log/screenshots/02-app/`. Na primeira vez: `npx playwright install chromium` |
 | `node --test .claude/hooks/guard-pasta.test.mjs` | testes do hook |
 | `sh tools/adicionar-ao-git.sh` | põe no índice do git os arquivos da pasta com segurança |
 
