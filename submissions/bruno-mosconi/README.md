@@ -5,7 +5,7 @@
 ## Sobre mim
 
 - **Nome:** Bruno Mosconi
-- **LinkedIn:** [[PREENCHER]]
+- **LinkedIn:** https://www.linkedin.com/in/bruno-mosconi
 - **Challenge escolhido:** 003 — Lead Scorer
 
 ---

@@ -1,0 +1,57 @@
+import { describe, expect, it } from "vitest";
+import { runBacktest } from "./backtest.ts";
+import type { Dataset, Deal } from "./data.ts";
+import { day } from "./data.ts";
+
+const t = day("2017-09-30");
+
+// 12 negócios abertos em t, todos com 10 dias (coorte vazia → chance 0 → valor ponderado empata).
+// D012 (o mais caro) ganha em t+30 por 50; D001 (o mais barato) ganha em t+30 por 70;
+// D005 ganha em t+100, fora da janela de 90 dias.
+const deals: Deal[] = Array.from({ length: 12 }, (_, i) => {
+	const n = i + 1;
+	const id = `D${String(n).padStart(3, "0")}`;
+	const won = n === 12 || n === 1 || n === 5;
+	const close = n === 5 ? t + 100 : won ? t + 30 : null;
+	const value = n === 12 ? 50 : n === 1 ? 70 : n === 5 ? 999 : null;
+	return {
+		id,
+		agent: "Ana",
+		product: `P${n}`,
+		account: null,
+		stage: won ? "Won" : "Engaging",
+		engage: t - 10,
+		close,
+		closeValue: value,
+	};
+});
+
+const ds: Dataset = {
+	deals,
+	accounts: new Map(),
+	prices: new Map(deals.map((d, i) => [d.product, (i + 1) * 100])),
+	agents: [{ name: "Ana", manager: "M", regional: "R" }],
+};
+
+describe("backtest", () => {
+	const r = runBacktest(ds, { snapshots: [t] });
+	const u = r.units[0];
+
+	it("denominador = receita ganha na janela pelos abertos em t", () => {
+		expect(u?.denominator).toBe(120);
+		expect(u?.candidates).toBe(12);
+	});
+
+	it("só preço pega os 10 mais caros: perde o D001", () => {
+		expect(u?.captured.price).toBe(50);
+	});
+
+	it("empate total cai no desempate pelo ID: pega D001..D010", () => {
+		expect(u?.captured.weighted).toBe(70);
+	});
+
+	it("aleatório = esperança exata: min(1, 10/n) × receita", () => {
+		expect(u?.randomExpected).toBe(100);
+		expect(r.share.random).toBeCloseTo(100 / 120, 12);
+	});
+});
