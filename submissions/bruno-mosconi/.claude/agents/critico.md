@@ -19,7 +19,7 @@ Você é o crítico da submissão do Challenge 003 (Lead Scorer). Seu trabalho �
 
 ## Checklist do plano e da arquitetura
 1. O plano atende a qual critério de aceite (CA)? Se não atende a nenhum, é escopo extra.
-2. Contradiz alguma decisão de `AGENTS.md`, seção 6?
+2. Contradiz alguma decisão de `AGENTS.md`, seção 7, ou de `process-log/decisoes.md`?
 3. Há requisito, número ou comportamento sem fonte (enunciado, dados, decisão do usuário)?
 4. Como vai ser verificado? Se não houver teste ou comando objetivo, aponte.
 5. Núcleo puro separado da UI, a mesma função servindo tela e backtest, nenhuma informação posterior à data de referência.

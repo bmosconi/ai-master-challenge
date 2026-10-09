@@ -18,10 +18,10 @@ O resumo completo das regras do exercício está em `AGENTS.md`, seção 2.
 | CA0 | **Revisão completa antes de construir:** regras, dados (recalculados de forma independente), código e documentação revisados; resultado em `process-log/01-revisao-inicial.md`; erros confirmados registrados. | D16; P "entendeu o problema antes de executar"; G "evidência de verificação" |
 | CA1 | Roda seguindo o README: `npm ci`, `npm run dev` e `npm run build` funcionam com Node 22.18 ou superior (D20). A URL pública abre a mesma versão. | R "precisa rodar"; R Setup; D6 |
 | CA2 | Usa as 4 tabelas originais (mais `metadata.csv`), versionadas sem alteração (hash SHA-256 conferido em teste). Contagens batem: 8.800 negócios; 4.238 / 2.473 / 1.589 / 500; 35 vendedores; 7 produtos; 85 empresas. | R "dados reais" |
-| CA3 | O score vai além do valor: valor ponderado = chance pela idade (coorte, sem viés de sobrevivência) × preço de lista. Um teste mostra que a ordem difere da ordem só por preço. | R "não é só ordenar por valor"; D5 |
-| CA4 | Cada negócio mostra o motivo numa frase ("De cada 10 negócios assim, X viraram venda"), com preço e valor ponderado. Frase e score vêm do mesmo cálculo (teste). | R "entender por quê"; R "Explainability ganha"; D5 |
+| CA3 | O score vai além do valor: valor ponderado = chance pela idade (coorte limpa, D27) × preço de lista. No backtest com a regra final, ele ganha de "só preço" com IC 95% que não inclui o zero, calculado por `npm run auditoria` e fixado em teste (hoje, +18,69 p.p., IC de 12,28 a 25,57, na foto de 30/09). | R "não é só ordenar por valor"; D5; D30 |
+| CA4 | Cada negócio mostra o motivo numa frase (D28): "Dos negócios que chegaram a N dias ainda em andamento, X de cada 10 viraram venda", com preço e valor ponderado. Frase e score vêm do mesmo cálculo (teste). A chance é apresentada como histórico, não como previsão. | R "entender por quê"; R "Explainability ganha"; D5; D28 |
 | CA5 | Filtros regional → gestor → vendedor. Três listas: "Foque agora" (selo "Esfriando" a partir de 90 dias), "Revisar ou encerrar" (mais de 138 dias) e "Inicie contato" (Prospecting por preço, só em 31/12/2017). Vendedor sem negócios ou sem negócios recentes vê um estado vazio que diz o que fazer. | R bônus filtros; R "segunda de manhã"; D2; D4; D13 |
-| CA6 | Data de referência padrão 31/12/2017. O seletor volta no tempo e reconstrói o funil só com o que se sabia na data. Teste anti-vazamento: mudar desfechos posteriores a T não altera o resultado em T. Datas sem histórico suficiente ficam bloqueadas, com explicação. | D1 |
+| CA6 | Data de referência padrão 31/12/2017. O seletor volta no tempo e reconstrói o funil só com o que se sabia na data. Teste anti-vazamento: mudar desfechos posteriores a T não altera o resultado em T. Só ficam disponíveis as datas em que toda faixa tem IC 95% de no máximo ±5 p.p. (`hasEnoughHistory`, D27). | D1; D27 |
 | CA7 | `npm run auditoria` reproduz o backtest (44,41% · 43,16% · 40,10% · 36,17% · 32,23% · 15,40%), fixado em `src/core/reference.test.ts`. TypeScript e Python precisam concordar; se divergirem, a revisão decide qual está certo e registra o motivo (D22; revisão inicial, R1–R4). | R "o scoring faz sentido?"; G "zero evidência de verificação" é fraqueza |
 | CA8 | Vendedor, produto, gestor, regional, setor e empresa ficam fora do score. A tela "Como funciona" mostra o que foi testado e descartado, com p-valores e backtest. | R "usa as features certas?"; D3 |
 | CA9 | Sem servidor, sem banco, sem LLM, sem chamada de rede em tempo de execução. | D7; D8; D15 |
@@ -30,7 +30,7 @@ O resumo completo das regras do exercício está em `AGENTS.md`, seção 2.
 | CA12 | Process log da etapa do Claude Code: nota curta sobre a preparação; ferramentas; revisão inicial (leitura do problema antes de construir); decisões; erros da IA e correções; o que o Bruno adicionou; número de iterações (sem horas); prints; exports. | P; R; G "o que queremos ver no process log"; D17 |
 | CA13 | O PR só altera `submissions/bruno-mosconi/` (checado por comando). Título `[Submission] Bruno Mosconi — Challenge 003`. Um PR. Sem chaves, arquivos de sistema ou artefatos derivados. | C |
 | CA14 | Um vendedor não técnico entende: vocabulário de CRM brasileiro, moeda em US$, legível em 1280 px e 390 px. O testador de uso cumpre as tarefas das três personas. | R "vendedor consegue usar"; R "ajuda a tomar decisão"; D11 |
-| CA16 | Página "Como funciona" (D19, incremento 5): a camada de cima explica a regra numa tela; a de baixo traz S1–S4 (os dados; a chance cai com a idade; o que não muda a ordem, incluindo o mês do trimestre; como validamos). Cada seção diz o que os dados mostraram, como foi conferido e que decisão mudou. Todo gráfico tem tabela. Todo número vem de função de `src/core` coberta por teste. Legível em 1280 e 390 px. Pode ser cortada (D25). | D19; P "entendeu o problema"; R "Explainability" |
+| CA16 | Página "Como funciona" (D19, incremento 5): a camada de cima explica a regra numa tela; a de baixo traz S1–S4 (os dados; a chance cai com a idade; o que não muda a ordem, incluindo o mês do trimestre; como validamos). Cada seção diz o que os dados mostraram, como foi conferido e que decisão mudou. Todo gráfico tem tabela. Todo número vem de função de `src/core` coberta por teste. Legível em 1280 e 390 px. Pode ser cortada (D25), menos o piso (D31): três tabelas vindas de `src/core`, sem gráfico (curva da coorte × só concluídos; backtest com IC; dimensões com p entre concluídos e na coorte) e uma linha no painel de motivo. | D19; P "entendeu o problema"; R "Explainability" |
 | CA15 | `docs/como-escalar.md` completo: o que existe e foi medido (números de `npm run bench` preenchidos); o que muda com volume, frescor, usuários e ações; arquitetura em três fases; o que não muda; riscos e controles. O README resume e aponta para ele. | R Limitações ("o que precisaria pra escalar"); D15 |
 
 ## 2. Incrementos e agenda
@@ -55,7 +55,7 @@ A agenda é por dia. Não se declaram horas (D17); os commits registram a sequê
 
 Já aplicado: o seletor de data oferece só 31/12/2017 e as 4 datas do backtest (ajuste da D1).
 
-**Não pode ser cortado:** CA0–CA5, CA7, CA11–CA13, CA15.
+**Não pode ser cortado:** CA0–CA5, CA7, CA11–CA13, CA15, o piso do CA16 (D31) e a tela do vendedor (D25).
 
 ## 3. Matriz requisito → artefato → validação → evidência
 
@@ -64,7 +64,7 @@ Já aplicado: o seletor de data oferece só 31/12/2017 e as 4 datas do backtest 
 | CA0 Revisão | `process-log/01-revisao-inicial.md` | recálculo independente; achados reproduzidos | relatório + commit de correções |
 | CA1 Rodar | `solution/package.json`, README Setup | clone limpo + comandos do README; abrir a URL | saída dos comandos; link Vercel; print |
 | CA2 Dados reais | `solution/data/*`, `src/core/data.ts` | `data.test.ts` (hash) e `reference.test.ts` (contagens) | saída do `npm run check` |
-| CA3 Score | `src/core/rules.ts` | teste com números de 31/12/2017; teste "difere de só preço" | testes |
+| CA3 Score | `src/core/rules.ts`, `src/core/backtest.ts` | `reference.test.ts`: ganho sobre "só preço" com a regra final | testes; `auditoria-ts.md` |
 | CA4 Motivo | frase gerada no núcleo (incremento 4), painel de motivo | teste frase = cálculo | teste + print |
 | CA5 Listas e filtros | `src/ui/*` | testes do núcleo das listas + `npm run e2e` | prints do testador |
 | CA6 Voltar no tempo | `src/core/rules.ts` (estado em T), seletor | teste anti-vazamento | teste |

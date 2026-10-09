@@ -37,9 +37,15 @@ import { day, isoDate, rows } from "../src/core/data.ts";
 import {
 	BANDS,
 	chanceCurve,
+	closedBy,
 	concludedOnlyCurve,
+	curveHalfWidth,
+	MAX_HALF_WIDTH,
 	maxCycleBy,
+	observedDuration,
+	openAt,
 	REFERENCE_DATE,
+	type Truncation,
 } from "../src/core/rules.ts";
 import { normalCi, pairedTest } from "../src/core/stats.ts";
 import { loadDataset, readRaw } from "../src/node/load.ts";
@@ -179,7 +185,11 @@ row(
 );
 
 // ---------- Curva (N12, N13)
-const curve = chanceCurve(ds.deals, T);
+// As linhas N conferem afirmações da preparação: usam a regra dela, sem correção do corte da base.
+// A regra final (G1) tem seção própria no fim.
+const PREP = { truncation: "none" } as const;
+const PREP_BT = { truncation: "none", onlyEligible: false } as const;
+const curve = chanceCurve(ds.deals, T, PREP);
 const co = cohortOutcomes(ds, T);
 const declaredCurve = [49.8, 46.4, 44.0, 32.9, 21.2, 9.1];
 row(
@@ -363,7 +373,7 @@ row(
 );
 
 // ---------- Backtest (N17, N32, N39)
-const bt = runBacktest(ds);
+const bt = runBacktest(ds, PREP_BT);
 const declaredBt: Record<MethodName | "random", number> = {
 	weighted: 44.41,
 	situationThenPrice: 43.35,
@@ -455,39 +465,60 @@ h(btLine("reconciliado (faixas do AGENTS, corte 138, em risco com >)", bt));
 h(
 	btLine(
 		"H1: faixas de 30 em 30 dias",
-		runBacktest(ds, { bands: [0, 30, 60, 90, 120] }),
+		runBacktest(ds, {
+			...PREP_BT,
+			bands: [0, 30, 60, 90, 120],
+		}),
 	),
 );
 h(
 	btLine(
 		"H1: chance por dia exato",
-		runBacktest(ds, { bands: Array.from({ length: 139 }, (_, i) => i) }),
+		runBacktest(ds, {
+			...PREP_BT,
+			bands: Array.from({ length: 139 }, (_, i) => i),
+		}),
 	),
 );
-const btObserved = runBacktest(ds, { cutoff: "observed" });
+const btObserved = runBacktest(ds, {
+	...PREP_BT,
+	cutoff: "observed",
+});
 h(btLine("H2: corte = maior ciclo observado em T", btObserved));
 h(
 	btLine(
 		"pré-registrado no C1: em risco com ≥",
-		runBacktest(ds, { atRisk: ">=" }),
+		runBacktest(ds, {
+			...PREP_BT,
+			atRisk: ">=",
+		}),
 	),
 );
 h(
 	btLine(
 		"situação com a fronteira da preparação (esfriando a partir de 91)",
-		runBacktest(ds, { coolingFrom: 91 }),
+		runBacktest(ds, {
+			...PREP_BT,
+			coolingFrom: 91,
+		}),
 	),
 );
 h(
 	btLine(
 		"H11: só as fotos de 31/08 e 30/09",
-		runBacktest(ds, { snapshots: SNAPSHOTS.slice(2) }),
+		runBacktest(ds, {
+			...PREP_BT,
+			snapshots: SNAPSHOTS.slice(2),
+		}),
 	),
 );
 h(
 	btLine(
 		"H11: curva só com iniciados a partir de 01/03/2017",
-		runBacktest(ds, { minEngage: day("2017-03-01") }),
+		runBacktest(ds, {
+			...PREP_BT,
+			minEngage: day("2017-03-01"),
+		}),
 	),
 );
 h("");
@@ -503,7 +534,10 @@ h(
 h(
 	`H11: iniciados em 2016 = ${int(ds.deals.filter((d) => d.engage !== null && d.engage < day("2017-01-01")).length)}; em jan–fev/2017 = ${int(ds.deals.filter((d) => d.engage !== null && d.engage >= day("2017-01-01") && d.engage < day("2017-03-01")).length)}.`,
 );
-const lateCurve = chanceCurve(ds.deals, T, { minEngage: day("2017-03-01") });
+const lateCurve = chanceCurve(ds.deals, T, {
+	...PREP,
+	minEngage: day("2017-03-01"),
+});
 h(
 	`H11: curva em 31/12 só com iniciados a partir de 01/03/2017: ${lateCurve.map((c) => `${c.from}: ${pct(c.chance)} (${int(c.atRisk)})`).join(" · ")}.`,
 );
@@ -511,23 +545,27 @@ h(
 	`Curva reconciliada (>) em 31/12, com n em risco: ${curve.map((c) => `${c.from}: ${pct(c.chance)} (${int(c.atRisk)})`).join(" · ")}.`,
 );
 h(
-	`Pré-registrado no C1 (≥): ${chanceCurve(ds.deals, T, { atRisk: ">=" })
+	`Pré-registrado no C1 (≥): ${chanceCurve(ds.deals, T, {
+		...PREP,
+		atRisk: ">=",
+	})
 		.map((c) => `${c.from}: ${pct(c.chance)}`)
 		.join(" · ")}.`,
 );
-const curveGe = chanceCurve(ds.deals, T, { atRisk: ">=" });
+const curveGe = chanceCurve(ds.deals, T, { ...PREP, atRisk: ">=" });
 const fGe = funnelAt(ds, T, curveGe);
 const wrongGe = concludedOnlyCurve(ds.deals, T, [14, 90], ">=");
 h(
 	`Pré-registrado no C1 (≥) nos números que divergiam: N13 só concluídos aos 14 e 90 dias = ${wrongGe.map((c) => pct(c.chance, 2)).join(" · ")}; N16 valor ponderado = ${usd(fGe.slices["no-prazo"].weighted + fGe.slices.esfriando.weighted)}.`,
 );
 h(
-	`H11: coorte de cada foto com a curva só de iniciados a partir de 01/03/2017: ${SNAPSHOTS.map((t) => `${date(t)} = ${int(chanceCurve(ds.deals, t, { minEngage: day("2017-03-01") })[0]?.atRisk ?? 0)}`).join("; ")} (coorte vazia = chance 0 para todos = ordem pelo ID).`,
+	`H11: coorte de cada foto com a curva só de iniciados a partir de 01/03/2017: ${SNAPSHOTS.map((t) => `${date(t)} = ${int(chanceCurve(ds.deals, t, { ...PREP, minEngage: day("2017-03-01") })[0]?.atRisk ?? 0)}`).join("; ")} (coorte vazia = chance 0 para todos = ordem pelo ID).`,
 );
 h(
 	btLine(
 		"H11: curva limpa (iniciados a partir de 01/03/2017), só 31/08 e 30/09",
 		runBacktest(ds, {
+			...PREP_BT,
 			snapshots: SNAPSHOTS.slice(2),
 			minEngage: day("2017-03-01"),
 		}),
@@ -538,8 +576,8 @@ h(
 );
 for (const t of SNAPSHOTS.slice(1, 3)) {
 	for (const [label, o] of [
-		["cheia", {}],
-		["limpa (desde 01/03/2017)", { minEngage: day("2017-03-01") }],
+		["cheia", PREP],
+		["limpa (desde 01/03/2017)", { truncation: "clean" }],
 	] as const) {
 		const c = calibrationAt(ds, t, T, o);
 		h(
@@ -644,6 +682,88 @@ const sectors = [
 	...new Set([...ds.accounts.values()].map((a) => a.sector)),
 ].sort();
 h(`Setores grafados no accounts.csv: ${sectors.join(", ")}.`);
+
+// ---------- Regra final (G1)
+h("\n## Regra final (G1): a coorte e o corte da base\n");
+const RULES: [Truncation, string][] = [
+	[
+		"clean",
+		"limpa: só iniciados a partir da primeira conclusão observada (regra final)",
+	],
+	[
+		"lateEntry",
+		"entrada tardia: todos, cada um a partir da idade que tinha em 01/03/2017 (alternativa)",
+	],
+	["none", "sem correção (regra da preparação)"],
+];
+h(
+	`Data disponível = toda faixa com IC 95% (Wilson) de no máximo ±${num(MAX_HALF_WIDTH * 100, 0)} p.p.\n`,
+);
+h(
+	`| Regra | ${[...SNAPSHOTS, T].map(date).join(" | ")} |\n|---|${"---|".repeat(SNAPSHOTS.length + 1)}`,
+);
+for (const [tr, label] of RULES)
+	h(
+		`| ${label} | ${[...SNAPSHOTS, T]
+			.map((t) => {
+				const c = chanceCurve(ds.deals, t, { truncation: tr });
+				const w = curveHalfWidth(c);
+				return `faixa 0: ${int(c[0]?.atRisk ?? 0)} em risco; ${w >= 1 ? "faixa vazia" : `±${num(w * 100, 2)} p.p.`}${w <= MAX_HALF_WIDTH ? " ✓" : ""}`;
+			})
+			.join(" | ")} |`,
+	);
+h("\nCurva em 31/12/2017 (chance por faixa 0 · 30 · 60 · 90 · 104 · 120):\n");
+for (const [tr, label] of RULES)
+	h(
+		`- ${label}: ${chanceCurve(ds.deals, T, { truncation: tr })
+			.map((c) => pct(c.chance))
+			.join(" · ")}; valor ponderado (no prazo + esfriando) ${usd(
+			(() => {
+				const ff = funnelAt(
+					ds,
+					T,
+					chanceCurve(ds.deals, T, { truncation: tr }),
+				);
+				return ff.slices["no-prazo"].weighted + ff.slices.esfriando.weighted;
+			})(),
+		)}`,
+	);
+h(
+	'\nBacktest só nas datas disponíveis, e teste pareado (unidade = vendedor). O CA3 pede o ganho sobre "só preço", com IC.\n',
+);
+h(
+	"| Regra | Fotos | Valor ponderado | Situação e preço | Só preço | Ponderado − só preço | Ponderado − situação e preço | Ponderado − preço sem parados |\n|---|---|---|---|---|---|---|---|",
+);
+for (const [tr, label] of RULES) {
+	const r = runBacktest(ds, { truncation: tr });
+	const pt = (o: MethodName) => {
+		const x = pairedTest(perAgent(r.units, "weighted", o));
+		return `${num(x.difference * 100, 2)} p.p. (IC ${num(x.ci95[0] * 100, 2)} a ${num(x.ci95[1] * 100, 2)}; p ${num(x.pSignFlip, 4)})`;
+	};
+	h(
+		`| ${label} | ${r.snapshots.map(date).join(", ")} | ${pct(r.share.weighted, 2)} | ${pct(r.share.situationThenPrice, 2)} | ${pct(r.share.price, 2)} | ${pt("price")} | ${pt("situationThenPrice")} | ${pt("priceNoStale")} |`,
+	);
+}
+h(
+	'\nCalibração: prevista pela curva em T × ganha até 31/12/2017, para os abertos com até 138 dias. "Ainda podiam concluir" são os que, em 31/12, estavam abertos com até 138 dias: o teto supõe que todos virariam venda.\n',
+);
+h(
+	"| Foto | Abertos | Realizada | Ainda podiam concluir | Teto | Prevista: limpa | Prevista: entrada tardia | Prevista: sem correção |\n|---|---|---|---|---|---|---|---|",
+);
+for (const t of SNAPSHOTS.slice(1)) {
+	const open = ds.deals.filter(
+		(d) => openAt(d, t) && observedDuration(d, t) <= 138,
+	);
+	const unresolved = open.filter(
+		(d) => !closedBy(d, T) && observedDuration(d, T) <= 138,
+	).length;
+	const cal = (tr: Truncation) => calibrationAt(ds, t, T, { truncation: tr });
+	const real = cal("clean").realized;
+	h(
+		`| ${date(t)} | ${int(open.length)} | ${pct(real)} | ${int(unresolved)} (${pct(unresolved / open.length)}) | ${pct(real + unresolved / open.length)} | ${pct(cal("clean").predicted)} | ${pct(cal("lateEntry").predicted)} | ${pct(cal("none").predicted)} |`,
+	);
+}
+h("");
 
 // ---------- Saída
 const statusText = (ok: boolean | null) =>

@@ -1,6 +1,6 @@
 # Revisão inicial do material de partida
 
-Status: **revisão concluída (C1 e C2). Aguardando o G1: decisões do Bruno no fim deste arquivo.**
+Status: **G1 aprovado e aplicado (09/10/2026). Duas escolhas pendentes com o Bruno (fim do arquivo): coorte limpa × entrada tardia, e valor ponderado × situação e preço.**
 
 ## Plano
 
@@ -536,3 +536,45 @@ O que está fraco, o que eu mudaria e por quê, em ordem de prioridade. Cada ite
 | 6 | O AGENTS §2.2 ganha os trechos literais do enunciado (K5 e P12); a D3 é reescrita; a tabela do §7 aponta para D18–D26 | **Sim.** Aplico com o seu ok, porque mexe no AGENTS | AGENTS |
 | 7 | Corrigir o `critico.md` (seção 6 → 7) | **Sim.** Está em `.claude/` e precisa do seu ok | `.claude/` |
 | 8 | Commit do `00-leitura-do-problema.md` | quando você avisar, faço um commit só com ele | — |
+
+## G1 (09/10/2026): respostas do Bruno e o que foi feito
+
+As respostas estão em `decisoes.md` (D27–D32). A leitura do Bruno (`00-leitura-do-problema.md`) foi criticada e versionada sem alteração (commit `a2fb335`): as hipóteses dela foram confirmadas pela revisão. A da linha 15 só em parte: o vendedor muda quanto fica parado.
+
+**1. Coorte limpa, com o backtest refeito** (`auditoria-ts.md`, "Regra final (G1)").
+
+| Regra | Datas disponíveis (IC de no máximo ±5 p.p. em toda faixa) | Valor ponderado − só preço | Valor ponderado − situação e preço |
+|---|---|---|---|
+| Limpa (regra final) | só 30/09; 31/08 fica fora por ±5,01 p.p. | +18,69 p.p. (IC 12,28 a 25,57) | +5,58 p.p. (IC 1,82 a 9,50; p = 0,008) |
+| Entrada tardia | 31/07, 31/08, 30/09 | +7,66 p.p. (IC 3,49 a 12,62) | +0,12 p.p. (IC −1,51 a 2,11; p = 0,90) |
+| Sem correção (preparação) | as 4 | +8,23 p.p. (IC 4,58 a 12,67) | +1,25 p.p. (p = 0,13) |
+
+- **Por que ±5 p.p.:** é a pergunta "a faixa tem dados para afirmar a chance com uma casa de 10 de margem?". Com a coorte limpa, o corte cai entre 379 negócios (31/07: ±8,6 p.p.) e 1.258 (31/08: ±5,01 p.p.), o que equivale aos "≥ 1.000". O critério fica no código (`hasEnoughHistory`).
+- **Evidência:** com a regra limpa, o ganho sobre "só preço" é forte, mas vem de **uma** foto. 31/08 cai por 0,013 p.p., o que mostra que o limite é frágil exatamente nessa data. Por isso, a entrada tardia também foi calculada, como pedido.
+- **Calibração:** as duas regras superestimam a chance. Em 31/08, a limpa previa 45,3%, a tardia 47,7%, e se realizaram 34,3%.
+- **Os 34% de 31/08 estão pouco subestimados.** Só 81 dos 1.857 negócios (4,4%) ainda podiam concluir depois de 31/12. Mesmo que todos virassem venda, o realizado subiria no máximo para 38,7%. Na prática, eles já tinham de 122 a 138 dias em 31/12, idade em que a chance histórica fica entre 4% e 20%. Isso não muda a conclusão e entra no "Como funciona" como nota de rodapé da calibração.
+
+**Recomendação: entrada tardia.** É o tratamento padrão para dados cortados no início. Ela usa todos os negócios observados, sem o viés dos sobreviventes, porque cada um entra na conta só nas idades em que a base o enxergava. Ela mantém 3 fotos de backtest em vez de 1, e com IC mais estreito. O custo é uma hipótese a mais: que o corte foi exatamente "negócios concluídos antes de 01/03/2017 saíram da base". O que sustenta essa hipótese: nenhuma conclusão antes de 01/03 e os inícios crescendo de 7 para cerca de 800 por mês. Se o Bruno preferir não depender dela, a limpa fica, com o aviso de que a validação vem de uma única data.
+
+**2. A frase como histórico.** D28 registrada. A frase será gerada no núcleo no incremento 4, com N igual ao início da faixa.
+
+**3. A fração parada por vendedor como situação do funil.** D29 registrada. Será feita no incremento 4, com o aviso sobre vendedor, carteira e região.
+
+**4. Três negócios reais em que as duas ordens divergem** (31/12/2017, coorte limpa; são 309 pares assim):
+
+| Vendedor | Valor ponderado põe primeiro | "Situação e preço" põe primeiro | Leitura |
+|---|---|---|---|
+| Rosalina Dieter | **1LY8CAXD**, GTK 500, US$ 26.768, 95 dias (esfriando), chance 25,6% → ponderado US$ 6.846 | **OHOWVHYX**, MG Advanced, US$ 3.393, 81 dias (no prazo), chance 38,6% → US$ 1.310 | Uma chance em quatro de US$ 26,8 mil vale cinco vezes mais que quatro em dez de US$ 3,4 mil. O valor ponderado acerta, e "situação e preço" mandaria a vendedora trabalhar o negócio pequeno primeiro |
+| Hayden Neloms | **7GDSUY9K**, GTX Plus Pro, US$ 5.482, 117 dias, chance 13,5% → US$ 740 | **HB740BLB**, MG Special, US$ 55, 11 dias, chance 47,3% → US$ 26 | O negócio de US$ 55 não paga uma ligação. Mas o 7GDSUY9K tem 21 dias até ficar parado, e a chance cai para 4,3% aos 120 dias. Valor ponderado com custo de esperar |
+| Daniell Hammack | **LFI3BGEE**, GTX Plus Pro, US$ 5.482, 100 dias, chance 25,6% → US$ 1.402 | **JIEO87ZV**, MG Advanced, US$ 3.393, 86 dias, chance 38,6% → US$ 1.310 | Quase empate. Mas o JIEO87ZV cruza os 90 dias em 4 dias e cai para 25,6%, ou US$ 868. Aqui "situação e preço" capta algo real: **agir antes de esfriar** |
+
+**Recomendação: manter o valor ponderado (D5)** e levar o que "situação e preço" tem de certo para o painel de motivo, na forma do **custo de esperar** ("em 4 dias, a chance cai de 4 para 3 em cada 10"). No backtest, o valor ponderado empata com "situação e preço" (entrada tardia, p = 0,90) ou ganha (limpa, p = 0,008). Os exemplos mostram que ele evita o erro grosseiro do primeiro caso.
+
+**5–7.** Aplicados: o piso do CA16 (D31), o AGENTS §2.2 com os trechos literais, a D3 reescrita, a tabela do §7, o `critico.md` (seção 7), o CA3 (ganho sobre "só preço" com IC, fixado em `reference.test.ts`), o CA4 (frase), o CA6 (critério de IC) e o CA16 (piso).
+
+### Pendentes com o Bruno
+
+| # | Decisão | Recomendação |
+|---|---|---|
+| G1-a | Coorte limpa (1 foto de validação) ou entrada tardia (3 fotos)? | **Entrada tardia** |
+| G1-b | Os 3 exemplos convenceram? A "Foque agora" fica no valor ponderado, com o custo de esperar no painel? | **Sim, valor ponderado mais custo de esperar** |

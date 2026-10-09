@@ -34,7 +34,7 @@ const ds: Dataset = {
 };
 
 describe("backtest", () => {
-	const r = runBacktest(ds, { snapshots: [t] });
+	const r = runBacktest(ds, { snapshots: [t], onlyEligible: false });
 	const u = r.units[0];
 
 	it("denominador = receita ganha na janela pelos abertos em t", () => {
@@ -54,7 +54,7 @@ describe("backtest", () => {
 		const cooling = { ...deals[11], id: "D013", engage: t - 95 } as Deal; // o mais caro, esfriando
 		const r2 = runBacktest(
 			{ ...ds, deals: [...deals.slice(0, 11), cooling], prices: ds.prices },
-			{ snapshots: [t] },
+			{ snapshots: [t], onlyEligible: false },
 		);
 		// D013 (o mais caro, ganho de 50) está esfriando e vai para o fim. Os 10 primeiros são os
 		// 11 no prazo menos o D001, então nada é capturado (D005 ganha fora da janela).

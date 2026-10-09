@@ -10,12 +10,14 @@ import {
 	chanceCurve,
 	chanceForAge,
 	concludedOnlyByDay,
+	hasEnoughHistory,
 	maxCycleBy,
 	observedDuration,
 	openAt,
 	type Situation,
 	STALE_AFTER,
 	situation,
+	type Truncation,
 } from "./rules.ts";
 
 export const SNAPSHOTS = [
@@ -89,6 +91,9 @@ export interface BacktestOptions {
 	cutoff?: "fixed" | "observed"; // 138 fixo ou o maior ciclo observado em T (H2)
 	minEngage?: number; // curva só com iniciados a partir deste dia (H11)
 	coolingFrom?: number; // início de "esfriando" (D2: 90; a preparação usou 91)
+	truncation?: Truncation; // padrão "clean" (G1)
+	/** Só as fotos com histórico suficiente (CA6). Padrão: sim, quando truncation ≠ "none". */
+	onlyEligible?: boolean;
 }
 
 export interface Unit {
@@ -104,6 +109,7 @@ export interface BacktestResult {
 	units: Unit[];
 	share: Record<MethodName | "random", number>;
 	cutoffs: number[];
+	snapshots: number[]; // fotos usadas: só as com histórico suficiente, salvo onlyEligible: false
 }
 
 export function candidatesAt(
@@ -140,6 +146,7 @@ export function rankAt(ds: Dataset, t: number, opts: BacktestOptions = {}) {
 			atRisk: opts.atRisk,
 			cutoff,
 			minEngage: opts.minEngage,
+			truncation: opts.truncation,
 		}),
 		wrongChance: concludedOnlyByDay(ds.deals, t),
 		cutoff,
@@ -149,6 +156,7 @@ export function rankAt(ds: Dataset, t: number, opts: BacktestOptions = {}) {
 	const agents = [...byAgent].sort(([a], [b]) => (a < b ? -1 : 1));
 	return {
 		cutoff,
+		eligible: hasEnoughHistory(ctx.curve),
 		agents: agents.map(([agent, cands]) => ({
 			agent,
 			cands,
@@ -165,8 +173,13 @@ export function runBacktest(
 ): BacktestResult {
 	const units: Unit[] = [];
 	const cutoffs: number[] = [];
+	const used: number[] = [];
+	const onlyEligible =
+		opts.onlyEligible ?? (opts.truncation ?? "clean") !== "none";
 	for (const t of opts.snapshots ?? SNAPSHOTS) {
 		const r = rankAt(ds, t, opts);
+		if (onlyEligible && !r.eligible) continue;
+		used.push(t);
 		cutoffs.push(r.cutoff);
 		for (const { agent, cands, ranked } of r.agents) {
 			const denominator = cands.reduce((s, c) => s + c.revenue, 0);
@@ -195,7 +208,7 @@ export function runBacktest(
 		]),
 		["random", units.reduce((s, u) => s + u.randomExpected, 0) / total],
 	]) as BacktestResult["share"];
-	return { units, share, cutoffs };
+	return { units, share, cutoffs, snapshots: used };
 }
 
 /** Por vendedor, somando as datas: a unidade do teste pareado (as fotos se sobrepõem). */

@@ -160,7 +160,11 @@ describe("listas do vendedor", () => {
 			P: 100,
 			Caro: 1000,
 		});
-		const l = agentLists(data, REFERENCE_DATE, "Ana");
+		// Os dados de teste não têm o corte de 01/03/2017; o caso fixa a regra da lista, não a coorte.
+		const curve = chanceCurve(data.deals, REFERENCE_DATE, {
+			truncation: "none",
+		});
+		const l = agentLists(data, REFERENCE_DATE, "Ana", curve);
 		// B1 e Z1 empatam (2/7 × 1000) e o ID desempata; A1 (95 dias) vale 1/5 × 1000.
 		expect(l.focus.map((s) => s.deal.id)).toEqual(["B1", "Z1", "A1"]);
 		expect(l.focus.map((s) => s.weighted)).toEqual([2000 / 7, 2000 / 7, 200]);

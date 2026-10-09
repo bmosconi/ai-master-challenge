@@ -175,5 +175,38 @@ Mês do trimestre: χ² p = 3.76e-123.
 H6: close_value ÷ preço de lista nos 4.238 ganhos: mínimo 0,66, máximo 1,34, média 0,996; dentro de ±10%: 68,9%.
 H7: maior ciclo dos ganhos = 138; dos perdidos = 138. Engaging com data de conclusão: 0.
 H8: "de cada 10" por faixa: 0: 49,8% → 5 · 30: 46,4% → 5 · 60: 44,0% → 4 · 90: 32,9% → 3 · 104: 21,2% → 2 · 120: 9,1% → 1.
-H10 (31/12): vendedores com "Foque agora" não vazia = 21; tamanho da lista de 1 a 31; dos 10 primeiros por valor ponderado, em média 88,6% também são os 10 mais caros; listas idênticas em 9 vendedores.
+H10 (31/12): vendedores com "Foque agora" não vazia = 21; tamanho da lista de 1 a 31; dos 10 primeiros por valor ponderado, em média 85,7% também são os 10 mais caros; listas idênticas em 7 vendedores.
 Setores grafados no accounts.csv: employment, entertainment, finance, marketing, medical, retail, services, software, technolgy, telecommunications.
+
+## Regra final (G1): a coorte e o corte da base
+
+Data disponível = toda faixa com IC 95% (Wilson) de no máximo ±5 p.p.
+
+| Regra | 30/06/2017 | 31/07/2017 | 31/08/2017 | 30/09/2017 | 31/12/2017 |
+|---|---|---|---|---|---|
+| limpa: só iniciados a partir da primeira conclusão observada (regra final) | faixa 0: 0 em risco; faixa vazia | faixa 0: 379 em risco; ±8,57 p.p. | faixa 0: 1.258 em risco; ±5,01 p.p. | faixa 0: 2.022 em risco; ±3,72 p.p. ✓ | faixa 0: 4.806 em risco; ±2,05 p.p. ✓ |
+| entrada tardia: todos, cada um a partir da idade que tinha em 01/03/2017 (alternativa) | faixa 0: 0 em risco; faixa vazia | faixa 0: 379 em risco; ±4,91 p.p. ✓ | faixa 0: 1.258 em risco; ±3,40 p.p. ✓ | faixa 0: 2.022 em risco; ±2,95 p.p. ✓ | faixa 0: 4.806 em risco; ±1,87 p.p. ✓ |
+| sem correção (regra da preparação) | faixa 0: 852 em risco; ±5,68 p.p. | faixa 0: 1.564 em risco; ±4,15 p.p. ✓ | faixa 0: 2.443 em risco; ±3,37 p.p. ✓ | faixa 0: 3.207 em risco; ±2,94 p.p. ✓ | faixa 0: 5.991 em risco; ±1,85 p.p. ✓ |
+
+Curva em 31/12/2017 (chance por faixa 0 · 30 · 60 · 90 · 104 · 120):
+
+- limpa: só iniciados a partir da primeira conclusão observada (regra final): 47,3% · 41,7% · 38,6% · 25,6% · 13,5% · 4,3%; valor ponderado (no prazo + esfriando) US$ 154.880
+- entrada tardia: todos, cada um a partir da idade que tinha em 01/03/2017 (alternativa): 47,3% · 42,9% · 41,2% · 30,8% · 19,9% · 8,6%; valor ponderado (no prazo + esfriando) US$ 182.928
+- sem correção (regra da preparação): 49,8% · 46,4% · 44,0% · 32,9% · 21,2% · 9,1%; valor ponderado (no prazo + esfriando) US$ 195.380
+
+Backtest só nas datas disponíveis, e teste pareado (unidade = vendedor). O CA3 pede o ganho sobre "só preço", com IC.
+
+| Regra | Fotos | Valor ponderado | Situação e preço | Só preço | Ponderado − só preço | Ponderado − situação e preço | Ponderado − preço sem parados |
+|---|---|---|---|---|---|---|---|
+| limpa: só iniciados a partir da primeira conclusão observada (regra final) | 30/09/2017 | 47,70% | 42,11% | 29,01% | 18,69 p.p. (IC 12,28 a 25,57; p 0,0000) | 5,58 p.p. (IC 1,82 a 9,50; p 0,0083) | 12,56 p.p. (IC 7,70 a 17,85; p 0,0000) |
+| entrada tardia: todos, cada um a partir da idade que tinha em 01/03/2017 (alternativa) | 31/07/2017, 31/08/2017, 30/09/2017 | 40,86% | 40,74% | 33,20% | 7,66 p.p. (IC 3,49 a 12,62; p 0,0004) | 0,12 p.p. (IC -1,51 a 2,11; p 0,9032) | 3,22 p.p. (IC 0,63 a 6,41; p 0,0220) |
+| sem correção (regra da preparação) | 30/06/2017, 31/07/2017, 31/08/2017, 30/09/2017 | 44,41% | 43,16% | 36,17% | 8,23 p.p. (IC 4,58 a 12,67; p 0,0001) | 1,25 p.p. (IC -0,19 a 2,91; p 0,1253) | 4,31 p.p. (IC 1,99 a 7,21; p 0,0006) |
+
+Calibração: prevista pela curva em T × ganha até 31/12/2017, para os abertos com até 138 dias. "Ainda podiam concluir" são os que, em 31/12, estavam abertos com até 138 dias: o teto supõe que todos virariam venda.
+
+| Foto | Abertos | Realizada | Ainda podiam concluir | Teto | Prevista: limpa | Prevista: entrada tardia | Prevista: sem correção |
+|---|---|---|---|---|---|---|---|
+| 31/07/2017 | 1.982 | 37,4% | 0 (0,0%) | 37,4% | 51,3% | 52,1% | 55,2% |
+| 31/08/2017 | 1.857 | 34,3% | 81 (4,4%) | 38,7% | 45,3% | 47,7% | 51,7% |
+| 30/09/2017 | 1.879 | 29,7% | 183 (9,7%) | 39,5% | 45,1% | 46,8% | 50,5% |
+

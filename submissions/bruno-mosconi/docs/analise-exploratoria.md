@@ -32,6 +32,7 @@ Coorte de 5.991 negócios iniciados até 15/08/2017 (tempo suficiente para concl
 
 - **O erro que quase entrou:** calcular a chance só com negócios concluídos dá o contrário, uma chance que sobe com a idade (68,7% aos 14 dias, 71,1% aos 90). É viés de sobrevivência.
 - Decisão: D5, valor ponderado = chance pela idade × preço.
+- **Depois da revisão inicial (G1):** a base só traz os negócios antigos que sobreviveram até a primeira conclusão (01/03/2017). Com a coorte corrigida (D27), a curva em 31/12 é 47,3 · 41,7 · 38,6 · 25,6 · 13,5 · 4,3%. A curva ordena bem, mas como previsão superestima: em 31/08, previa 45% e se realizaram 34%. Por isso a chance aparece como histórico (D28). Fonte: `npm run auditoria`.
 
 ## 3. 63% não é a chance de um negócio novo
 

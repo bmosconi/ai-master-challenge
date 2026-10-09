@@ -35,7 +35,7 @@ Leia os cinco na revisão inicial (seção 8) e corrija este resumo se divergir.
   - Usou IA de forma inteligente ou só copiou e colou?
   - O resultado resolve o problema de verdade?
   - Alguém consegue entender e agir com base na entrega?
-- **Fora da avaliação:** linguagem específica, frameworks memorizados, experiência no setor, qual ferramenta foi usada.
+- **Fora da avaliação:** linguagem específica, frameworks memorizados, "experiência prévia no setor de educação", qual ferramenta foi usada.
 - **Regras:**
   - use IA (qualquer ferramenta);
   - envie evidências do processo;
@@ -45,7 +45,8 @@ Leia os cinco na revisão inicial (seção 8) e corrija este resumo se divergir.
 
 ### 2.2 O desafio 003 (`challenges/build-003-lead-scorer/README.md`)
 
-- **Contexto:** 35 vendedores em escritórios regionais, gestores, cerca de 8.800 oportunidades. A priorização hoje é "no feeling". A Head de RevOps quer "algo funcional", que o vendedor abra, veja o funil e saiba onde focar; "pode ser simples, mas precisa funcionar".
+- **Contexto:** 35 vendedores em escritórios regionais, gestores, cerca de 8.800 oportunidades. A priorização hoje é "no feeling". A Head de RevOps diz: "Nossos vendedores gastam tempo demais em deals que não vão fechar e deixam oportunidades boas esfriar." Ela quer "algo funcional", que o vendedor abra, veja o funil e saiba onde focar; "pode ser simples, mas precisa funcionar".
+- "O deliverable principal é **software funcionando** — não um documento."
 - **Dados:** 4 tabelas do Kaggle (CC0): `accounts`, `products`, `sales_teams`, `sales_pipeline`. O enunciado diz que `close_value` é 0 nos perdidos: confere nos dados (2.473 de 2.473). Nos abertos, o campo vem vazio.
 - **Entrega 1, solução funcional (obrigatória):**
   - precisa **rodar** (não pode ser mockup);
@@ -65,8 +66,9 @@ Leia os cinco na revisão inicial (seção 8) e corrija este resumo se divergir.
   - o código é limpo o bastante para outro dev manter?
 - **Dicas do enunciado:**
   - útil vale mais que ML perfeito: comece simples e itere;
+  - "Deal stage, tempo no pipeline, tamanho da conta, produto e vendedor são features óbvias. O que mais importa? Olhe os dados.";
   - regras e heurísticas bem apresentadas valem mais que um XGBoost sem interface;
-  - "Explainability ganha";
+  - "Explainability ganha. Se o vendedor entender POR QUE o deal tem score 85, a ferramenta é 10x mais útil que um número sem contexto.";
   - pense na segunda de manhã;
   - filtro por vendedor, gestor e região é bônus.
 
@@ -181,11 +183,11 @@ Comandos (atualize esta lista se mudar; os marcados com * ainda não existem e e
 
 | Decisão | O que vale |
 |---|---|
-| D1 | Data de referência padrão 31/12/2017, com seletor para voltar no tempo. Numa data T, o app reconstrói o funil e recalcula as chances só com o que se sabia em T. |
+| D1 | Data de referência padrão 31/12/2017, com seletor para voltar no tempo. Numa data T, o app reconstrói o funil e recalcula as chances só com o que se sabia em T. O seletor oferece só datas com histórico suficiente: toda faixa com IC 95% de no máximo ±5 p.p. (D27). |
 | D2 | Idade = T − `engage_date`. No prazo: 0–89 dias. Esfriando: 90–138. Parado: mais de 138. "Em andamento" é o conjunto de todos os negócios abertos. |
-| D3 | Vendedor e produto **não** entram no score: qui-quadrado p = 0,264 (vendedor) e 0,372 (produto); no embaralhamento, 36–38% dos sorteios dão diferença igual ou maior. A tela "Como funciona" mostra o que foi testado e descartado. |
+| D3 | Vendedor e produto **não** entram no score (D29). Produto não muda nada: p = 0,372 entre concluídos e 0,718 na coorte. O vendedor não muda a taxa de ganho entre concluídos (p = 0,264; 36–38% dos sorteios dão diferença igual ou maior), mas muda **quanto fica parado** (p < 0,001 na coorte). Esse efeito multiplica todos os negócios do vendedor e **não muda a ordem da lista dele**. Na visão do gestor, a fração parada por vendedor aparece como situação do funil, não como ranking, com o aviso de que os dados não separam vendedor, carteira e região. A tela "Como funciona" mostra o que foi testado e descartado. |
 | D4 | Prospecting vai na lista "Inicie contato", ordenada por preço de lista. |
-| D5 | Score = **valor ponderado** em US$ = chance pela idade × preço de lista, com a frase "De cada 10 negócios assim, X viraram venda". |
+| D5 | Score = **valor ponderado** em US$ = chance pela idade × preço de lista. É critério de ordem, não previsão de receita (a curva superestima: ver a calibração). Frase (D28): "Dos negócios que chegaram a N dias ainda em andamento, X de cada 10 viraram venda." Mantido por enquanto contra "situação e preço" (D30). |
 | D6 | Publicar na Vercel, só após autorização. |
 | D7 | Sem LLM no app. |
 | D8 | React + Vite + TypeScript, sem servidor. |
@@ -196,13 +198,14 @@ Comandos (atualize esta lista se mudar; os marcados com * ainda não existem e e
 | D14 | Título do PR `[Submission] Bruno Mosconi — Challenge 003`; submeter até domingo, 11/10/2026, à noite. |
 | D15 | Sem servidor e sem banco. A escala é provada com evidência (seção 5) e explicada em detalhe em `docs/como-escalar.md`. |
 | D16 | Antes de construir, o Claude Code revisa todo o material de partida e conhece todas as regras do exercício (seção 8). |
-| D17 | O process log registra só a etapa do Claude Code; a preparação anterior aparece apenas como uma nota em `process-log/README.md`. Não declarar horas gastas. |
+| D17 | O process log registra só a etapa do Claude Code; a preparação anterior aparece apenas como uma nota em `process-log/README.md`. Não declarar horas gastas. Exceção (D24): o viés de sobrevivência da preparação entra em `erros-da-ia.md`. |
+| D18 em diante | Em `process-log/decisoes.md`, com data, quem decidiu e evidência. |
 
 **Chance pela idade (sem viés de sobrevivência)**, calculada na data T:
-- **Coorte:** negócios não-Prospecting com `engage_date` ≤ T − 138 dias. O desfecho é o visto em T; quem ainda está aberto conta como "não ganhou".
+- **Coorte:** negócios não-Prospecting com `engage_date` ≤ T − 138 dias **e a partir da primeira conclusão observada até T** (01/03/2017), porque a base só traz os negócios antigos que sobreviveram até essa data (D27, H11). O desfecho é o visto em T; quem ainda está aberto conta como "não ganhou".
 - **Faixa que começa em b dias:** chance = ganhos ÷ negócios da coorte que ainda estavam abertos depois de b dias, ou seja, com duração **maior que** b. Um negócio aberto com idade *a* só é comparável a quem durou mais de *a* (revisão inicial, R1).
 - **Faixas:** 0–29, 30–59, 60–89, 90–103, 104–119, 120–138. Mais de 138 dias: chance 0.
-- **Valores em 31/12/2017:** 49,8% · 46,4% · 44,0% · 32,9% · 21,2% · 9,1%. A coorte tem 5.991 negócios (iniciados até 15/08/2017).
+- **Valores em 31/12/2017 (regra final):** 47,3% · 41,7% · 38,6% · 25,6% · 13,5% · 4,3%; a coorte tem 4.806 negócios (iniciados de 01/03 a 15/08/2017). Sem a correção do corte da base (regra da preparação, 5.991 negócios): 49,8% · 46,4% · 44,0% · 32,9% · 21,2% · 9,1%.
 - **Errado, não usar:** calcular a chance só com negócios concluídos. Isso dá 68,7% aos 14 dias e 71,1% aos 90.
 
 **Listas por vendedor:**
@@ -215,9 +218,11 @@ Empate: desempate pelo `opportunity_id`.
 **Em 31/12/2017:**
 - Dos 1.589 Engaging: 110 no prazo, 188 esfriando, 1.291 parados.
 - Preço de lista desses 1.589: US$ 3,89 mi, dos quais 82% estão parados. A prospecção (sem data) soma mais US$ 1,07 mi.
-- Valor ponderado: cerca de US$ 195 mil.
+- Valor ponderado: US$ 154.880 com a regra final (US$ 195.380 sem a correção). É critério de ordem, não previsão de receita.
 
-**Backtest de referência** (fotos em 30/06, 31/07, 31/08 e 30/09/2017; 10 primeiros por vendedor; receita ganha em até 90 dias):
+**Backtest com a regra final** (só as datas com histórico suficiente): sobra só 30/09/2017. Valor ponderado 47,70%, contra 29,01% de "só preço": **+18,69 p.p. (IC 95% de 12,28 a 25,57)** (CA3). Com entrada tardia (a alternativa da D27): 31/07, 31/08 e 30/09, +7,66 p.p. (IC de 3,49 a 12,62). Fonte: `npm run auditoria`, "Regra final (G1)".
+
+**Backtest de referência da preparação** (sem a correção do corte; fotos em 30/06, 31/07, 31/08 e 30/09/2017; 10 primeiros por vendedor; receita ganha em até 90 dias):
 
 | Método | Receita capturada |
 |---|---|

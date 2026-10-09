@@ -2,6 +2,7 @@
 // (definições pré-registradas em process-log/01-revisao-inicial.md, seção 3).
 
 import { type Dataset, type Deal, day, priceOf } from "./data.ts";
+import { wilson } from "./stats.ts";
 
 export const COOLING_FROM = 90; // "Esfriando" a partir de 90 dias
 export const STALE_AFTER = 138; // "Parado" depois de 138 dias
@@ -9,6 +10,19 @@ export const BANDS = [0, 30, 60, 90, 104, 120] as const;
 export const REFERENCE_DATE = day("2017-12-31");
 
 export type AtRisk = ">=" | ">";
+
+/**
+ * A base só traz negócios concluídos a partir da primeira conclusão observada (01/03/2017) ou ainda
+ * abertos: os antigos que aparecem são os que sobreviveram até lá (revisão inicial, H11).
+ * - "clean" (padrão, G1): a coorte só usa negócios iniciados a partir da primeira conclusão observada.
+ * - "lateEntry": usa todos, mas um negócio só conta na faixa b se, aos b dias, já estava na janela
+ *   observada (início + b ≥ primeira conclusão). É a alternativa considerada (decisoes.md).
+ * - "none": a curva da preparação, sem correção.
+ */
+export type Truncation = "none" | "clean" | "lateEntry";
+
+/** Meia-largura máxima do IC 95% (Wilson) aceita em qualquer faixa para a data ficar disponível. */
+export const MAX_HALF_WIDTH = 0.05;
 
 export interface CurveOptions {
 	bands?: readonly number[];
@@ -20,6 +34,7 @@ export interface CurveOptions {
 	atRisk?: AtRisk;
 	cutoff?: number; // dias; coorte = iniciados até T − cutoff; acima disso, parado
 	minEngage?: number; // só iniciados a partir deste dia (H11)
+	truncation?: Truncation;
 }
 
 export interface BandChance {
@@ -55,16 +70,30 @@ export function maxCycleBy(deals: readonly Deal[], t: number): number {
 	return max;
 }
 
+/** Primeira conclusão observada até T: o início da janela em que a base enxerga desfechos. */
+export function firstCloseBy(deals: readonly Deal[], t: number): number | null {
+	let first: number | null = null;
+	for (const d of deals)
+		if (closedBy(d, t) && (first === null || (d.close as number) < first))
+			first = d.close;
+	return first;
+}
+
 export function cohort(
 	deals: readonly Deal[],
 	t: number,
 	opts: CurveOptions = {},
 ): Deal[] {
 	const cutoff = opts.cutoff ?? STALE_AFTER;
+	const from =
+		(opts.truncation ?? "clean") === "clean"
+			? (firstCloseBy(deals, t) ?? Number.POSITIVE_INFINITY)
+			: Number.NEGATIVE_INFINITY;
 	return deals.filter(
 		(d) =>
 			d.engage !== null &&
 			d.engage <= t - cutoff &&
+			d.engage >= from &&
 			(opts.minEngage === undefined || d.engage >= opts.minEngage),
 	);
 }
@@ -77,12 +106,19 @@ export function chanceCurve(
 ): BandChance[] {
 	const bands = opts.bands ?? BANDS;
 	const strict = (opts.atRisk ?? ">") === ">";
+	const window = firstCloseBy(deals, t) ?? Number.POSITIVE_INFINITY;
+	const late = opts.truncation === "lateEntry";
 	const base = cohort(deals, t, opts).map((d) => ({
+		engage: d.engage as number,
 		dur: observedDuration(d, t),
 		won: wonBy(d, t),
 	}));
 	return bands.map((from) => {
-		const risk = base.filter((x) => (strict ? x.dur > from : x.dur >= from));
+		const risk = base.filter(
+			(x) =>
+				(strict ? x.dur > from : x.dur >= from) &&
+				(!late || x.engage + from >= window),
+		);
 		const won = risk.filter((x) => x.won).length;
 		return {
 			from,
@@ -92,6 +128,21 @@ export function chanceCurve(
 		};
 	});
 }
+
+/** Maior meia-largura do IC 95% entre as faixas (1 quando alguma faixa está vazia). */
+export function curveHalfWidth(curve: readonly BandChance[]): number {
+	return Math.max(
+		...curve.map((c) => {
+			if (c.atRisk === 0) return 1;
+			const [lo, hi] = wilson(c.won, c.atRisk);
+			return (hi - lo) / 2;
+		}),
+	);
+}
+
+/** A data tem histórico suficiente se toda faixa tem IC 95% de no máximo ±5 p.p. (G1). */
+export const hasEnoughHistory = (curve: readonly BandChance[]): boolean =>
+	curveHalfWidth(curve) <= MAX_HALF_WIDTH;
 
 /** O cálculo errado: só concluídos até T, com ciclo > b. Fica aqui para mostrar o viés. */
 export function concludedOnlyCurve(
