@@ -293,23 +293,29 @@ O histórico do git é evidência. Nunca reescreva histórico para parecer outro
 
 ## 10. Vocabulário da interface
 
-Use os termos de `docs/benchmark-ux.md`, seção 3:
+Os usuários são vendedores e gerentes de vendas: frases curtas, verbos de ação, os jargões deles. Estatística (coorte, IC, p-valor) só no "Como funciona", traduzida ("margem de erro"). Vocabulário decidido pelo Bruno (D40), que substitui "No prazo", "Parado" e "Valor ponderado" na interface e nos documentos; os identificadores do código (`no-prazo`, `parado`, `weighted`) não mudam. Se um termo ficar estranho num contexto, mostre o caso ao Bruno em vez de adivinhar.
 
 | Use | Em vez de |
 |---|---|
 | Negócio | deal |
-| Funil | pipeline |
+| Funil, carteira | pipeline |
 | Em andamento (todos os abertos) | open, aberto |
-| No prazo (0–89 dias) | dentro do prazo |
-| Esfriando (90–138 dias) | atenção |
-| Parado há N dias (mais de 138) | stale, estagnado |
+| Quente (até 89 dias) | no prazo, dentro do prazo |
+| Esfriando (90 a 138 dias) | atenção |
+| Frio (mais de 138 dias) | parado, stale, estagnado |
+| Esfria em N dias / Fica frio em N dias | — |
+| Potencial (preço de lista × chance de fechar, pelo histórico) | valor ponderado, valor esperado |
+| Score (0 a 100, posição do potencial, D39) | — |
+| Chance de fechar, pelo histórico ("De cada 100 negócios…, X fecharam venda", com o mesmo número da conta) | probabilidade, previsão |
+| Abas: Prioridades da semana / Atualize ou dê perda / Prospecção | Foque agora / Revisar ou encerrar / Inicie contato |
+| Áreas: Minha semana / Minha equipe / Como funciona | — |
 | Concluídos (ganhos + perdidos) | encerrado ou fechado; "fechado" é ambíguo |
-| Ganho / Perdido | — |
-| Valor ponderado | valor esperado |
+| Ganho / Perdido; "dar perda" | — |
 | Taxa de ganho | win rate |
 | Ticket médio | — |
 | Ciclo de vendas | — |
 | Empresa | conta |
 | Vendedor(a), Gestor(a), Regional | — |
+| Margem de erro (no "Como funciona") | IC, intervalo de confiança |
 
 Moeda sempre em US$.
