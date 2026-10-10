@@ -321,3 +321,26 @@ for (const width of [1280, 390])
 		);
 		expect(how, "como funciona").toBeLessThanOrEqual(0);
 	});
+
+test("sem chamada de rede: toda requisição é do próprio site (CA9)", async ({
+	page,
+	baseURL,
+}) => {
+	const outside: string[] = [];
+	page.on("request", (r) => {
+		const url = r.url();
+		if (!url.startsWith(baseURL ?? "") && !url.startsWith("data:"))
+			outside.push(url);
+	});
+	await enter(page, "Zane Levy");
+	await page.getByRole("button", { name: "Ver o motivo" }).click();
+	await page.keyboard.press("Escape");
+	await tab(page, "Prospecção").click();
+	await enter(page, "Summer Sewald");
+	await page.goto("/#como-funciona");
+	await page.locator(".how details").first().waitFor();
+	for (const d of await page.locator(".how details summary").all())
+		await d.click();
+	await page.waitForLoadState("networkidle");
+	expect(outside).toEqual([]);
+});
