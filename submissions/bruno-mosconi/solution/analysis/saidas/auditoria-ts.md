@@ -202,7 +202,7 @@ Backtest só nas datas disponíveis, e teste pareado (unidade = vendedor). O CA3
 | limpa: só iniciados a partir da primeira conclusão observada (sensibilidade) | 30/09/2017 | 47,70% | 42,11% | 29,01% | 18,69 p.p. (IC 12,28 a 25,57; p 0,0000) | 5,58 p.p. (IC 1,82 a 9,50; p 0,0083) | 12,56 p.p. (IC 7,70 a 17,85; p 0,0000) |
 | sem correção (regra da preparação) | 30/06/2017, 31/07/2017, 31/08/2017, 30/09/2017 | 44,41% | 43,16% | 36,17% | 8,23 p.p. (IC 4,58 a 12,67; p 0,0001) | 1,25 p.p. (IC -0,19 a 2,91; p 0,1253) | 4,31 p.p. (IC 1,99 a 7,21; p 0,0006) |
 
-Modelo de ML na regra final (31/07/2017, 31/08/2017, 30/09/2017): 43,18% contra 40,86% do valor ponderado; ML − ponderado = 2,32 p.p. (IC -2,46 a 6,39; p 0,3347). Por data, ponderado · só preço · aleatório: 31/07/2017 37,77% · 35,56% · 13,92%; 31/08/2017 38,52% · 34,00% · 14,35%; 30/09/2017 47,70% · 29,01% · 13,97%.
+Modelo de ML na regra final (31/07/2017, 31/08/2017, 30/09/2017): 43,18% contra 40,86% do valor ponderado; ML − ponderado = 2,32 p.p. (IC -2,46 a 6,39; p 0,3347). Captura na regra final: weighted 40,86% · situationThenPrice 40,74% · priceNoStale 37,64% · price 33,20% · concludedOnly 29,09% · aleatório 14,07%. Por data, ponderado · só preço · aleatório: 31/07/2017 37,77% · 35,56% · 13,92%; 31/08/2017 38,52% · 34,00% · 14,35%; 30/09/2017 47,70% · 29,01% · 13,97%.
 
 Calibração: prevista pela curva em T × ganha até 31/12/2017, para os abertos com até 138 dias. "Ainda podiam concluir" são os que, em 31/12, estavam abertos com até 138 dias: o teto supõe que todos virariam venda.
 

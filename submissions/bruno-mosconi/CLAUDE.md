@@ -27,7 +27,7 @@ A conversa principal é o **orquestrador**. Ela planeja, implementa todo o códi
 
 A skill oficial `frontend-design` está instalada no nível do usuário (`/plugin install frontend-design@claude-plugins-official`). Use-a em toda tarefa de interface.
 
-A própria skill manda seguir o briefing do projeto quando ele fixa uma direção: "the brief's own words always win". O briefing é este (D41; o protótipo que o aplica, à espera de aprovação, está em `process-log/prototipos/rodada-3/`):
+A própria skill manda seguir o briefing do projeto quando ele fixa uma direção: "the brief's own words always win". O briefing é este (D41; o protótipo que o aplica, aprovado na D44, está em `process-log/prototipos/rodada-3/`):
 
 - **Produto:** ferramenta que o vendedor abre na segunda de manhã para saber por onde começar, e que o gestor abre para ver onde a equipe travou. Estilo do apple.com: limpo, elegante, caprichado em cada componente. Animação liberada, sempre com propósito; nada de enfeite.
 - **Hierarquia:** um protagonista por tela. O que decide ganha tamanho, peso e posição; o resto recua.

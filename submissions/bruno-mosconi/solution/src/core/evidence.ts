@@ -73,6 +73,7 @@ export function evidence(ds: Dataset, mlCsv: string) {
 		price: bt.share.price,
 		random: bt.share.random,
 		situationThenPrice: bt.share.situationThenPrice,
+		all: bt.share,
 		ml:
 			mlUnits.reduce((s, x) => s + x.ml, 0) /
 			bt.units.reduce((s, u) => s + u.denominator, 0),

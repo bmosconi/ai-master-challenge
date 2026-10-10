@@ -757,7 +757,7 @@ for (const [tr, label] of RULES) {
 	).backtest;
 	const x = b.mlVsWeighted;
 	h(
-		`\nModelo de ML na regra final (${b.dates.map((d) => date(d.t)).join(", ")}): ${pct(b.ml, 2)} contra ${pct(b.weighted, 2)} do valor ponderado; ML − ponderado = ${num(x.difference * 100, 2)} p.p. (IC ${num(x.ci95[0] * 100, 2)} a ${num(x.ci95[1] * 100, 2)}; p ${num(x.pSignFlip, 4)}). Por data, ponderado · só preço · aleatório: ${b.dates.map((d) => `${date(d.t)} ${pct(d.weighted, 2)} · ${pct(d.price, 2)} · ${pct(d.random, 2)}`).join("; ")}.`,
+		`\nModelo de ML na regra final (${b.dates.map((d) => date(d.t)).join(", ")}): ${pct(b.ml, 2)} contra ${pct(b.weighted, 2)} do valor ponderado; ML − ponderado = ${num(x.difference * 100, 2)} p.p. (IC ${num(x.ci95[0] * 100, 2)} a ${num(x.ci95[1] * 100, 2)}; p ${num(x.pSignFlip, 4)}). Captura na regra final: ${METHOD_NAMES.map((m) => `${m} ${pct(b.all[m], 2)}`).join(" · ")} · aleatório ${pct(b.random, 2)}. Por data, ponderado · só preço · aleatório: ${b.dates.map((d) => `${date(d.t)} ${pct(d.weighted, 2)} · ${pct(d.price, 2)} · ${pct(d.random, 2)}`).join("; ")}.`,
 	);
 }
 h(

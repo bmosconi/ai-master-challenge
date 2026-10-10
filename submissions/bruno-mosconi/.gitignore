@@ -19,6 +19,8 @@ __pycache__/
 .env.*
 # Configuração de MCP: pode conter chave de API (Krea)
 .mcp.json
+# Termos privados da limpeza dos exports (tools/limpar-exports.mjs)
+.termos-privados
 
 # Preferências locais do Claude Code (não versionar)
 settings.local.json

@@ -1,4 +1,7 @@
-// Leitura das 4 tabelas do CRM. Os CSVs vêm sem aspas (um teste garante), então um split basta.
+// Leitura das 4 tabelas do CRM. O núcleo só conhece o contrato `Dataset`; quem o monta é um
+// adaptador: `parseDataset` lê os CSVs do desafio (o app), `fromCrmJson` lê um JSON no formato de
+// uma API de CRM (prova de que trocar a fonte não muda a regra, CA10). Os CSVs vêm sem aspas (um
+// teste garante), então um split basta.
 
 export type Stage = "Won" | "Lost" | "Engaging" | "Prospecting";
 
@@ -120,4 +123,62 @@ export function priceOf(ds: Dataset, d: Deal): number {
 	const p = ds.prices.get(d.product);
 	if (p === undefined) throw new Error(`produto sem preço: ${d.product}`);
 	return p;
+}
+
+/** Um JSON como o de uma API de CRM: outros nomes de campo, datas ISO, preço junto do produto. */
+export interface CrmJson {
+	opportunities: {
+		id: string;
+		owner: string;
+		product: string;
+		account: string | null;
+		stage: Stage;
+		engagedAt: string | null; // "2017-10-20"
+		closedAt: string | null;
+		amount: number | null;
+	}[];
+	accounts: {
+		name: string;
+		sector: string;
+		revenueMillions: number;
+		employees: number;
+	}[];
+	products: { name: string; listPrice: number }[];
+	team: { name: string; manager: string; office: string }[];
+}
+
+export function fromCrmJson(json: CrmJson): Dataset {
+	return {
+		deals: json.opportunities.map((o) => {
+			if (!STAGES.includes(o.stage))
+				throw new Error(`etapa desconhecida: ${o.stage}`);
+			return {
+				id: o.id,
+				agent: o.owner,
+				product: PRODUCT_ALIASES[o.product] ?? o.product,
+				account: o.account,
+				stage: o.stage,
+				engage: o.engagedAt === null ? null : day(o.engagedAt),
+				close: o.closedAt === null ? null : day(o.closedAt),
+				closeValue: o.amount,
+			};
+		}),
+		accounts: new Map(
+			json.accounts.map((a) => [
+				a.name,
+				{
+					name: a.name,
+					sector: a.sector,
+					revenue: a.revenueMillions,
+					employees: a.employees,
+				},
+			]),
+		),
+		prices: new Map(json.products.map((p) => [p.name, p.listPrice])),
+		agents: json.team.map((m) => ({
+			name: m.name,
+			manager: m.manager,
+			regional: m.office,
+		})),
+	};
 }

@@ -149,11 +149,11 @@ submissions/bruno-mosconi/
 - Versões das dependências: conferir com `npm view <pacote> version` na hora de instalar e fixar no `package.json`. Nunca escrever versão de memória.
 - Deploy: Vercel, com diretório raiz `submissions/bruno-mosconi/solution`, só com autorização (D6).
 - **Escala provada com evidência** (D15, detalhe em `docs/como-escalar.md`):
-  - interface de dados `DataSource`, com dois adaptadores: CSV no app e JSON nos testes, provando que trocar a fonte não muda o resultado;
+  - contrato de dados `Dataset` (`src/core/data.ts`), com dois adaptadores: `parseDataset` (os CSVs, no app) e `fromCrmJson` (JSON no formato de uma API de CRM, nos testes); `adapters.test.ts` prova que trocar a fonte não muda o resultado;
   - `npm run bench` mede o núcleo com os dados multiplicados por 100;
   - a data de referência é parâmetro de todas as contas (point-in-time).
 
-Comandos (atualize esta lista se mudar; os marcados com * ainda não existem e entram nos incrementos seguintes):
+Comandos (atualize esta lista se mudar):
 
 | Comando | O que faz |
 |---|---|
@@ -161,7 +161,7 @@ Comandos (atualize esta lista se mudar; os marcados com * ainda não existem e e
 | `npm run auditoria` | recalcula os números da seção 7 (inclusive o backtest) e grava `solution/analysis/saidas/auditoria-ts.md` |
 | `npm run dev` | servidor local |
 | `npm run build` | build de produção |
-| `npm run bench` * | teste de desempenho com os dados multiplicados por 100 |
+| `npm run bench` | mede o núcleo com os dados multiplicados por 1, 10 e 100, no Node e no Chromium; grava `solution/analysis/saidas/bench.md` |
 | `npm run e2e` | testes de navegador no build de produção. Na primeira vez: `npx playwright install chromium` |
 | `npm run prints` | prints (1280 e 390 px, claro e escuro) e vídeo dos movimentos em `process-log/screenshots/03-app/`; viram WebP e VP9 se `cwebp` e `ffmpeg` estiverem instalados |
 | `npm run personas` | medição para o `testador-de-uso`: tempo e cliques até cada persona achar a resposta; saída em `test-results/personas/` |
@@ -187,9 +187,9 @@ Comandos (atualize esta lista se mudar; os marcados com * ainda não existem e e
 |---|---|
 | D1 | Data de referência padrão 31/12/2017, com seletor para voltar no tempo. Numa data T, o app reconstrói o funil e recalcula as chances só com o que se sabia em T. O seletor oferece só datas com histórico suficiente: toda faixa com IC 95% de no máximo ±5 p.p. (D27). |
 | D2 | Idade = T − `engage_date`. No prazo: 0–89 dias. Esfriando: 90–138. Parado: mais de 138. "Em andamento" é o conjunto de todos os negócios abertos. |
-| D3 | Vendedor e produto **não** entram no score (D29). Produto não muda nada: p = 0,372 entre concluídos e 0,718 na coorte. O vendedor não muda a taxa de ganho entre concluídos (p = 0,264; 36–38% dos sorteios dão diferença igual ou maior), mas muda **quanto fica parado** (p < 0,001 na coorte). Esse efeito multiplica todos os negócios do vendedor e **não muda a ordem da lista dele**. Na visão do gestor, a fração parada por vendedor aparece como situação do funil, não como ranking, com o aviso de que os dados não separam vendedor, carteira e região. A tela "Como funciona" mostra o que foi testado e descartado. |
+| D3 | Vendedor e produto **não** entram no score (D29). Produto não muda nada: p = 0,372 entre concluídos e 0,718 na coorte. O vendedor não muda a taxa de ganho entre concluídos (p = 0,264; 38% de 10.000 sorteios dão diferença igual ou maior), mas muda **quanto fica parado** (p < 0,001 na coorte). Esse efeito multiplica todos os negócios do vendedor e **não muda a ordem da lista dele**. Na visão do gestor, a fração parada por vendedor aparece como situação do funil, não como ranking, com o aviso de que os dados não separam vendedor, carteira e região. A tela "Como funciona" mostra o que foi testado e descartado. |
 | D4 | Prospecting vai na lista "Inicie contato", ordenada por preço de lista. |
-| D5 | Score = **valor ponderado** em US$ = chance pela idade × preço de lista. É critério de ordem, não previsão de receita (a curva superestima: ver a calibração). Frase (D28): "Dos negócios que chegaram a N dias ainda em andamento, X de cada 10 viraram venda." Mantido contra "situação e preço" (D30), com os selos "Esfria em N dias" e "Fica parado em N dias", que não mudam a ordem. |
+| D5 | A ordem é o **potencial** (antes "valor ponderado") em US$ = chance pela idade × preço de lista. É critério de ordem, não previsão de receita (a curva superestima: ver a calibração). O score de 0 a 100 é a posição do potencial (D39). Frase (D28, D40): "De cada 100 negócios que chegaram aos N dias ainda em andamento, X fecharam venda", com o mesmo X da conta. Mantido contra "situação e preço" (D30), com os selos "Esfria em N dias" e "Fica frio em N dias", que não mudam a ordem. |
 | D6 | Publicar na Vercel, só após autorização. |
 | D7 | Sem LLM no app. |
 | D8 | React + Vite + TypeScript, sem servidor. |
@@ -238,7 +238,7 @@ Empate: desempate pelo `opportunity_id`.
 
 - **Fonte:** `npm run auditoria` (TypeScript) e `solution/analysis/backtest_referencia.py` (Python). Os dois precisam concordar; se divergirem, a revisão decide qual está certo e registra o motivo (D22). Concordam em tudo, menos em "situação e preço": o Python trata 90 dias como "no prazo" e dá 43,35%; com a D2 (esfriando a partir de 90), dá 43,16% (`process-log/01-revisao-inicial.md`, R2).
 - **Teste pareado** (unidade = vendedor, bootstrap e troca de sinais): o valor ponderado ganha de forma significativa de "preço sem os parados" (+4,31 p.p.; p = 0,0006) e de "só preço" (+8,23 p.p.), mas **não** de "situação e preço" (+1,25 p.p.; IC 95% −0,19 a +2,91; p = 0,13).
-- **Machine learning:** um modelo de gradient boosting (`solution/analysis/significancia_ml.py`) captura 45,03%. Contra o valor ponderado, a diferença **não é significativa**: +0,62 p.p. (IC 95% −3,32 a +3,98; p = 0,74). Fica fora.
+- **Machine learning:** um modelo de gradient boosting (`solution/analysis/significancia_ml.py`), nas mesmas unidades vendedor × data do backtest da regra final, captura 43,18% contra 40,86% do valor ponderado. A diferença **não é significativa**: +2,32 p.p. (IC 95% −2,46 a +6,39; p = 0,33). No backtest da preparação, 45,03% contra 44,41% (+0,62 p.p.; IC −3,32 a +3,98; p = 0,74). Fica fora. Fonte: `npm run auditoria`, "Modelo de ML na regra final".
 
 **Armadilhas conhecidas:**
 - "Sem empresa" vaza o desfecho.

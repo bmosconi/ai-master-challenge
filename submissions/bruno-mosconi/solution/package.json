@@ -15,6 +15,7 @@
 		"e2e": "playwright test e2e/fluxos.pw.ts",
 		"prints": "playwright test e2e/prints.pw.ts --workers=1",
 		"auditoria": "node scripts/auditoria.ts",
+		"bench": "node scripts/bench.ts",
 		"personas": "playwright test e2e/personas.pw.ts --workers=1"
 	},
 	"devDependencies": {
