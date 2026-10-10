@@ -17,10 +17,13 @@ __pycache__/
 .vercel/
 .env
 .env.*
+# Configuração de MCP: pode conter chave de API (Krea)
+.mcp.json
 
 # Preferências locais do Claude Code (não versionar)
 settings.local.json
 CLAUDE.local.md
+scheduled_tasks.lock
 
 # Sistema
 .DS_Store

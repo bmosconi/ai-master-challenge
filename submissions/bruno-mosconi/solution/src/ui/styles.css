@@ -1323,68 +1323,391 @@ button.dot:focus-visible {
 	margin: 0 0 10px 4px;
 }
 
-/* Como funciona (rascunho; página completa no incremento 5) */
+/* Como funciona (incremento 5) */
 .how {
 	max-width: 980px;
 	margin: 0 auto;
 	display: grid;
-	gap: 28px;
+	gap: 24px;
 }
+/* Faixa baixa: a regra cabe na primeira tela em 1280 (D48) */
 .how-art {
+	aspect-ratio: 8 / 1;
+	object-fit: cover;
+	margin: -16px 0 -12px;
 	-webkit-mask-image: radial-gradient(
-		ellipse 80% 72% at 50% 50%,
-		#000 62%,
+		ellipse 50% 62% at 50% 50%,
+		#000 55%,
 		transparent 100%
 	);
 	mask-image: radial-gradient(
-		ellipse 80% 72% at 50% 50%,
-		#000 62%,
+		ellipse 50% 62% at 50% 50%,
+		#000 55%,
 		transparent 100%
 	);
 }
-.how h1,
-.how .lead-sub {
+.how-head {
 	text-align: center;
-	margin-left: auto;
-	margin-right: auto;
 }
-.how .lead-sub {
-	max-width: 52ch;
+.how-head .lead-sub {
+	max-width: none;
+	margin: 12px auto 0;
 }
-.bands-card {
-	padding: 28px 28px 32px;
-	display: grid;
-	gap: 22px;
-}
-.bands-card h2 {
-	font-size: 19px;
+.how-h2 {
+	font-size: 40px;
+	line-height: 1.1;
 	font-weight: 600;
-	letter-spacing: 0.012em;
-	line-height: 1.3;
-	max-width: 48ch;
+	text-align: center;
+	margin-top: 48px;
 }
-.bands {
+.how h3 {
+	font-size: 21px;
+	line-height: 1.24;
+	font-weight: 600;
+	letter-spacing: 0.011em;
+}
+.how p {
+	max-width: 68ch;
+}
+
+/* A regra: tabela da chance por idade + o exemplo em três passos */
+.rule {
+	padding: 28px;
 	display: grid;
-	grid-template-columns: repeat(7, minmax(0, 1fr));
-	gap: 12px;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+	gap: 36px;
 }
-.bands div {
-	display: grid;
-	gap: 4px;
-	align-content: start;
+.rule h2 {
+	font-size: 17px;
+	font-weight: 600;
+	line-height: 1.35;
+	margin-bottom: 12px;
 }
-.bands .temp {
-	font-size: 13px;
+.how table {
+	width: 100%;
+	border-collapse: collapse;
+	font-variant-numeric: tabular-nums;
 }
-.bands .age {
+.how th,
+.how td {
+	text-align: left;
+	padding: 6px 8px;
+	font-weight: 400;
+}
+.how thead th {
+	font-size: 14px;
+	color: var(--ink-2);
+	padding-top: 0;
+}
+.how tbody tr + tr > * {
+	border-top: 1px solid var(--sep);
+}
+.how .r {
+	text-align: right;
+}
+.how td.v {
+	font-size: 21px;
+	font-weight: 600;
+}
+.how tr.mine > * {
+	background: var(--fill);
+}
+.how tr.mine > :first-child {
+	border-radius: 10px 0 0 10px;
+}
+.how tr.mine > :last-child {
+	border-radius: 0 10px 10px 0;
+}
+.mine-tag {
+	margin-left: 8px;
 	font-size: 14px;
 	color: var(--ink-2);
 }
-.bands .v {
-	font-size: 28px;
+.rule-table .temp {
+	font-size: 14px;
+}
+.steps {
+	list-style: none;
+	counter-reset: step;
+	display: grid;
+	gap: 14px;
+}
+.steps li {
+	counter-increment: step;
+	display: grid;
+	gap: 6px;
+	padding-left: 40px;
+	position: relative;
+}
+.steps li::before {
+	content: counter(step);
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 26px;
+	height: 26px;
+	border-radius: 50%;
+	background: var(--ink);
+	color: var(--bg);
+	font-size: 14px;
+	font-weight: 600;
+	display: grid;
+	place-items: center;
+}
+.steps h3 {
+	font-size: 19px;
+}
+.steps p {
+	color: var(--ink-2);
+}
+.acct-inline::before {
+	content: ", ";
+}
+.acct-inline.none {
+	display: none;
+}
+
+/* Provas */
+.proof {
+	padding: 32px 28px;
+	display: grid;
+	gap: 18px;
+}
+.proof > p {
+	color: var(--ink-2);
+}
+.callout {
+	background: var(--fill);
+	border-radius: 14px;
+	padding: 16px 18px;
+	display: grid;
+	gap: 4px;
+}
+.callout h4 {
+	margin: 0;
+	font-size: 17px;
+	font-weight: 600;
+}
+.callout p {
+	color: var(--ink-2);
+}
+
+/* Prova 1: duas barras por faixa de idade */
+.pair-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 20px;
+	font-size: 14px;
+	color: var(--ink-2);
+}
+.pair-legend .k::before {
+	content: "";
+	display: inline-block;
+	width: 12px;
+	height: 12px;
+	border-radius: 3px;
+	margin-right: 8px;
+	vertical-align: -1px;
+}
+.k-real::before {
+	background: var(--ink);
+}
+.k-wrong::before {
+	border: 1.5px dashed var(--ink-3);
+}
+.pair-chart {
+	display: grid;
+	grid-template-columns: repeat(6, minmax(0, 1fr));
+	gap: 8px;
+	margin-top: 22px;
+}
+.pair {
+	display: grid;
+	gap: 8px;
+	justify-items: center;
+}
+.pair-bars {
+	height: 150px;
+	width: 100%;
+	max-width: 76px;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	align-items: end;
+	gap: 4px;
+	border-bottom: 1px solid var(--sep);
+}
+.pb {
+	position: relative;
+	border-radius: 4px 4px 0 0;
+}
+.pb.real {
+	background: var(--ink);
+}
+.pb.wrong {
+	border: 1.5px dashed var(--ink-3);
+	border-bottom: 0;
+}
+.pb b {
+	position: absolute;
+	bottom: calc(100% + 4px);
+	left: 50%;
+	transform: translateX(-50%);
+	font-size: 14px;
 	font-weight: 600;
 	font-variant-numeric: tabular-nums;
-	letter-spacing: 0.007em;
+}
+.pb.wrong b {
+	font-weight: 400;
+	color: var(--ink-2);
+}
+.pair-age,
+.pair-axis {
+	font-size: 14px;
+	color: var(--ink-2);
+	font-variant-numeric: tabular-nums;
+}
+.pair-axis {
+	text-align: center;
+	margin: -8px auto 0;
+}
+
+/* Prova 2: barras horizontais e a tabela por data */
+.bars {
+	display: grid;
+	gap: 10px;
+}
+.bar-row {
+	display: grid;
+	grid-template-columns: 190px 1fr 48px;
+	align-items: center;
+	gap: 14px;
+	color: var(--ink-2);
+}
+.bar-row.strong {
+	color: var(--ink);
+	font-weight: 600;
+}
+.bar-track {
+	height: 12px;
+	border-radius: 6px;
+	background: var(--fill);
+	overflow: hidden;
+}
+.bar-fill {
+	display: block;
+	height: 100%;
+	background: var(--ink-3);
+	transform-origin: left;
+}
+.bar-row.strong .bar-fill {
+	background: var(--ink);
+}
+.bar-v {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+.by-date {
+	max-width: 560px;
+}
+.by-date caption {
+	text-align: left;
+	font-weight: 600;
+	padding-bottom: 6px;
+}
+.by-date tbody th {
+	color: var(--ink-2);
+}
+
+/* Prova 3: um ponto por grupo, numa régua de 40% a 85% */
+.strips {
+	display: grid;
+	gap: 4px;
+}
+.strip-row {
+	display: grid;
+	grid-template-columns: 170px 1fr 92px 84px;
+	align-items: center;
+	gap: 14px;
+	min-height: 36px;
+	font-variant-numeric: tabular-nums;
+}
+.strip {
+	position: relative;
+	height: 20px;
+}
+.strip::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 50%;
+	height: 2px;
+	background: var(--fill);
+}
+.strip-dot {
+	position: absolute;
+	top: 50%;
+	width: 10px;
+	height: 10px;
+	margin: -5px 0 0 -5px;
+	border-radius: 50%;
+	background: var(--ink-2);
+	box-shadow: 0 0 0 2px var(--surface);
+	opacity: 0.75;
+}
+.strip-mean {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 2px;
+	margin-left: -1px;
+	background: var(--ink);
+}
+.strip-range,
+.strip-p {
+	text-align: right;
+	color: var(--ink-2);
+	font-size: 15px;
+}
+
+/* Limitações */
+.limits {
+	padding: 32px 28px;
+	display: grid;
+	gap: 28px;
+}
+.limits > div {
+	display: grid;
+	gap: 8px;
+}
+.limits > div + div {
+	padding-top: 28px;
+	border-top: 1px solid var(--sep);
+}
+.limits p {
+	color: var(--ink-2);
+}
+.limits .note {
+	margin-top: 0;
+}
+
+/* Ver detalhes: os termos técnicos ficam recolhidos */
+.more-details summary {
+	cursor: pointer;
+	color: var(--link);
+	font-size: 15px;
+	width: max-content;
+	border-radius: 6px;
+}
+.more-details summary:hover {
+	text-decoration: underline;
+}
+.more-body {
+	display: grid;
+	gap: 10px;
+	margin-top: 12px;
+	font-size: 15px;
+	color: var(--ink-2);
 }
 
 /* Movimento: primeira abertura (uma vez por sessão) e troca do herói */
@@ -1432,6 +1755,9 @@ button.dot:focus-visible {
 	}
 	.side {
 		position: static;
+	}
+	.rule {
+		grid-template-columns: minmax(0, 1fr);
 	}
 }
 
@@ -1640,12 +1966,55 @@ button.dot:focus-visible {
 	.how h1 {
 		font-size: 34px;
 	}
-	.bands {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 20px 12px;
+	.how-art {
+		aspect-ratio: 3 / 1;
 	}
-	.bands-card {
-		padding: 24px;
+	.how-h2 {
+		font-size: 28px;
+		margin-top: 28px;
+	}
+	.rule,
+	.proof,
+	.limits {
+		padding: 24px 20px;
+	}
+	.pair-chart {
+		gap: 4px;
+	}
+	.pb b {
+		font-size: 12px;
+	}
+	.pair-age {
+		font-size: 12px;
+	}
+	.bar-row {
+		grid-template-columns: 1fr 44px;
+		gap: 6px 10px;
+	}
+	.bar-row .bar-label {
+		grid-column: 1 / -1;
+	}
+	.bar-row .bar-track {
+		grid-column: 1;
+	}
+	.strip-row {
+		grid-template-columns: 1fr auto;
+		gap: 4px 12px;
+		padding: 6px 0;
+	}
+	.strip-row .strip {
+		grid-column: 1 / -1;
+		grid-row: 2;
+	}
+	.strip-p {
+		grid-column: 2;
+		grid-row: 1;
+	}
+	.strip-range {
+		grid-column: 1 / -1;
+		grid-row: 3;
+		text-align: left;
+		font-size: 14px;
 	}
 	.tabbar {
 		display: grid;

@@ -46,7 +46,7 @@ if [ -n "$novos" ]; then
 fi
 
 # Trava final: nada proibido pode estar no índice.
-proibidos=$(git diff --cached --name-only | grep -E '(^|/)(node_modules|dist|coverage|\.vercel)/|(^|/)\.env($|\.)|settings\.local\.json$' || true)
+proibidos=$(git diff --cached --name-only | grep -E '(^|/)(node_modules|dist|coverage|\.vercel)/|(^|/)\.env($|\.)|settings\.local\.json$|(^|/)\.mcp\.json$' || true)
 if [ -n "$proibidos" ]; then
   echo "Arquivos que não podem ir para o repositório foram parar no índice:" >&2
   echo "$proibidos" >&2

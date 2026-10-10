@@ -1,4 +1,4 @@
-// Prints e vídeo do incremento 4 (D41–D44): 1280 e 390 px, claro e escuro.
+// Prints e vídeo dos incrementos 4 e 5 (D41–D48): 1280 e 390 px, claro e escuro.
 // Saída em process-log/screenshots/03-app/. Para o repositório não pesar, os PNG viram WebP
 // quando o cwebp está instalado; sem ele, ficam em PNG.
 
@@ -43,10 +43,20 @@ for (const scheme of ["light", "dark"] as const)
 					await page.locator(".member").last().scrollIntoViewIfNeeded();
 					await shot(page, "06-gestor-rolada");
 				}
+				// D46: o nº 1 com score baixo; o herói vira a prospecção.
+				await enter(page, "Anna Snelling");
+				await shot(page, "11-heroi-acao", false);
+				// Incremento 5: a primeira tela (D48) e a página inteira.
+				await page.goto("/#como-funciona");
+				await page.locator(".how details").first().waitFor();
+				await shot(page, "09-como-funciona-tela", false);
+				// A página inteira no celular escuro pesaria 430 kB a mais; a primeira tela basta.
+				if (desk || scheme === "light")
+					await shot(page, "09-como-funciona", true);
 			});
 
 			if (scheme === "light")
-				test("entrada, lista completa, frios, vazio, data passada, como funciona", async ({
+				test("entrada, lista completa, frios, vazio, data passada", async ({
 					page,
 				}) => {
 					await page.goto("/#entrada");
@@ -72,8 +82,6 @@ for (const scheme of ["light", "dark"] as const)
 							.getByRole("combobox", { name: "Data dos dados" })
 							.selectOption({ label: "30/09/2017" });
 					await shot(page, "08-data-passada");
-					await page.goto("/#como-funciona");
-					await shot(page, "09-como-funciona");
 				});
 		});
 	}

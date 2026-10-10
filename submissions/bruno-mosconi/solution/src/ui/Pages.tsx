@@ -1,22 +1,17 @@
-// Entrada ("Quem é você?") e o rascunho do "Como funciona" (a página completa é o incremento 5).
+// Entrada ("Quem é você?") e a imagem com versão clara e escura.
 
-import { shownPercent } from "../core/reason.ts";
-import { COOLING_FROM, STALE_AFTER } from "../core/rules.ts";
-import comoClaro from "./assets/como-funciona-claro.webp";
-import comoEscuro from "./assets/como-funciona-escuro.webp";
 import entradaClaro from "./assets/entrada-claro.webp";
 import entradaEscuro from "./assets/entrada-escuro.webp";
-import { date, initials, plural } from "./format.ts";
+import { initials, plural } from "./format.ts";
 import { Icon } from "./Icon.tsx";
-import { type DayModel, MANAGERS, PEOPLE } from "./model.ts";
-import { TEMP_ICON, TEMP_LABEL } from "./Thermo.tsx";
+import { MANAGERS, PEOPLE } from "./model.ts";
 
 export interface Person {
 	role: "vendedor" | "gestor";
 	name: string;
 }
 
-function Art({
+export function Art({
 	light,
 	dark,
 	alt,
@@ -95,61 +90,6 @@ export function EntryView({ onPick }: { onPick: (p: Person) => void }) {
 					</div>
 				))}
 			</div>
-		</section>
-	);
-}
-
-/** Rascunho do incremento 5: a regra numa frase e a chance por idade na data escolhida. */
-export function HowView({ day }: { day: DayModel }) {
-	const bands = day.curve.map((c, i) => {
-		const to = (day.curve[i + 1]?.from ?? STALE_AFTER + 1) - 1;
-		return {
-			temp:
-				c.from < COOLING_FROM ? ("quente" as const) : ("esfriando" as const),
-			age: `${c.from} a ${to} dias`,
-			v: shownPercent(c.chance),
-		};
-	});
-	const all = [
-		...bands,
-		{ temp: "frio" as const, age: `Mais de ${STALE_AFTER} dias`, v: 0 },
-	];
-	return (
-		<section className="how">
-			<Art
-				light={comoClaro}
-				dark={comoEscuro}
-				className="how-art"
-				alt="Sete placas de vidro fosco em fila, do laranja quente, à esquerda, ao cinza frio, à direita."
-			/>
-			<h1>Como a lista é feita</h1>
-			<p className="lead-sub">
-				A idade do negócio diz se ele está quente, esfriando ou frio. O
-				potencial, preço de lista vezes a chance de fechar pelo histórico,
-				decide a ordem.
-			</p>
-			<section className="card bands-card">
-				<h2>
-					De cada 100 negócios que chegaram a cada idade ainda em andamento,
-					quantos fecharam venda
-				</h2>
-				<div className="bands">
-					{all.map((b) => (
-						<div key={b.age}>
-							<span className={`temp t-${b.temp}`}>
-								<Icon name={TEMP_ICON[b.temp]} />
-								{TEMP_LABEL[b.temp]}
-							</span>
-							<span className="age">{b.age}</span>
-							<span className="v">{b.v}</span>
-						</div>
-					))}
-				</div>
-			</section>
-			<p className="note center">
-				Histórico da base inteira até {date(day.t)}. A página completa, com o
-				que foi testado e descartado, entra no incremento 5.
-			</p>
 		</section>
 	);
 }

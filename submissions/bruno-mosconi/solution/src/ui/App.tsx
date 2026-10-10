@@ -13,10 +13,11 @@ import { availableDates } from "../core/analysis.ts";
 import { REFERENCE_DATE } from "../core/rules.ts";
 import { dataset as ds } from "./dataset.ts";
 import { date, initials } from "./format.ts";
+import { HowView } from "./HowView.tsx";
 import { Icon, type IconName } from "./Icon.tsx";
 import { dayModel, MANAGERS, maxPotential, PEOPLE } from "./model.ts";
 import { snapshot, takeFirstOpen } from "./motion.ts";
-import { EntryView, HowView, type Person } from "./Pages.tsx";
+import { EntryView, type Person } from "./Pages.tsx";
 import { SellerView } from "./SellerView.tsx";
 import { TeamView } from "./TeamView.tsx";
 

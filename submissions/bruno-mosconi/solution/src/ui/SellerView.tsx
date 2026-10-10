@@ -1,4 +1,5 @@
 // Minha semana (D41): o negócio nº 1 é o herói; os nº 2 a 5 vêm menores; o resto fica recolhido.
+// Se o nº 1 tem score baixo, o herói é a ação da semana e o nº 1 vira cartão (D46).
 // O termômetro da carteira fica ao lado (fixo ao rolar) e o painel mostra a conta e o que fazer.
 
 import {
@@ -17,6 +18,9 @@ import { Icon, type IconName } from "./Icon.tsx";
 import {
 	type DayModel,
 	type DealView,
+	greeting,
+	type HeroAction,
+	heroAction,
 	type SellerModel,
 	sellerModel,
 	type Temp,
@@ -80,7 +84,6 @@ function Hero({
 	const pot = useCountUp(d.potential, intro);
 	const t = todo(d);
 	return (
-		// biome-ignore lint/a11y/useKeyWithClickEvents: o teclado usa o botão "Ver o motivo"
 		<article
 			className={`card hero lift${intro ? " intro" : ""}${swapped ? " swap-in" : ""}${waiting ? " waiting" : ""}`}
 			data-open={d.id}
@@ -120,6 +123,75 @@ function Hero({
 					}}
 				>
 					Ver o motivo
+				</button>
+			</div>
+		</article>
+	);
+}
+
+/** D46: o nº 1 tem score baixo; o herói vira a ação que mais pesa na semana. */
+function ActionHero({
+	action,
+	m,
+	waiting,
+	swapped,
+	onSwapDone,
+	go,
+	fromTeam,
+}: {
+	action: HeroAction;
+	m: SellerModel;
+	fromTeam: boolean;
+	waiting: boolean;
+	swapped: boolean;
+	onSwapDone: () => void;
+	go: (t: Tab) => void;
+}) {
+	const pros = action === "prospeccao";
+	const list = pros ? m.prospect : m.review;
+	const total = list.reduce((a, d) => a + d.price, 0);
+	const top = m.focus[0] as DealView;
+	return (
+		<article
+			className={`card hero hero-action${swapped ? " swap-in" : ""}${waiting ? " waiting" : ""}`}
+			aria-hidden={waiting || undefined}
+			onAnimationEnd={onSwapDone}
+		>
+			<div>
+				{pros ? (
+					<span className="temp">
+						<Icon name="users-three" />
+						Prospecção
+					</span>
+				) : (
+					<TempTag temp="frio" label="Frios" />
+				)}
+				<h2>
+					{pros
+						? `${plural(list.length, "contato", "contatos")} sem negócio aberto`
+						: `${plural(list.length, "negócio aberto", "negócios abertos")} há mais de ${STALE_AFTER} dias`}
+				</h2>
+			</div>
+			<p className="hero-pot">
+				<span className="num">{usd(total)}</span>a preço de lista
+			</p>
+			<div className="hero-do">
+				<h3>{pros ? "Faça o primeiro contato." : "Atualize ou dê perda."}</h3>
+				<p>
+					{fromTeam ? `O nº 1 de ${first(m.name)}` : "O seu nº 1"},{" "}
+					{top.product}, tem score {top.score}: o potencial dele é baixo perto
+					dos negócios de todos os vendedores. Por isso a semana começa{" "}
+					{pros ? "pela prospecção" : "pelos frios"}.
+				</p>
+			</div>
+			<div className="hero-foot">
+				<button
+					type="button"
+					className="pill primary"
+					tabIndex={waiting ? -1 : undefined}
+					onClick={() => go(action)}
+				>
+					{pros ? "Ver a prospecção" : "Ver os frios"}
 				</button>
 			</div>
 		</article>
@@ -273,32 +345,6 @@ function ThermoCard({
 	);
 }
 
-function greeting(m: SellerModel) {
-	const f = m.focus;
-	if (!f.length) return { lead: "", urg: "" };
-	const n = Math.min(5, f.length);
-	const cool = f.filter(
-		(d) => d.deadline?.kind === "esfria" && d.deadline.days <= 7,
-	).length;
-	const cold = f.filter(
-		(d) => d.deadline?.kind === "parado" && d.deadline.days <= 7,
-	).length;
-	const esf = (k: number) => `${k} ${k === 1 ? "esfria" : "esfriam"}`;
-	const fri = (k: number) => `${k} ${k === 1 ? "fica frio" : "ficam frios"}`;
-	const urg =
-		cool && cold
-			? `${esf(cool)} e ${fri(cold)} nesta semana.`
-			: cool
-				? `${esf(cool)} nesta semana.`
-				: cold
-					? `${fri(cold)} nesta semana.`
-					: "Nenhum esfria nesta semana.";
-	return {
-		lead: n === 1 ? "Comece por este." : `Comece por estes ${n}.`,
-		urg,
-	};
-}
-
 /** Estado vazio da semana: diz o que fazer, na voz de quem está vendo (a pessoa ou o gestor). */
 function emptyWeek(
 	m: SellerModel,
@@ -370,22 +416,25 @@ export function SellerView({
 
 	// Troca de data com outro nº 1 (D44): o herói antigo some na hora (ele mostraria dados da
 	// outra data, inclusive a empresa, D34); os cartões mudam de lugar; depois o herói novo aparece.
+	// A chave cobre os dois heróis: o negócio nº 1 ou a ação da semana (D46).
 	const heroNow = m.focus[0];
-	const [heroId, setHeroId] = useState(heroNow?.id);
+	const action = heroAction(m, day.t);
+	const heroKey = heroNow && (action ? `acao-${action}` : heroNow.id);
+	const [shownKey, setShownKey] = useState(heroKey);
 	const [swapped, setSwapped] = useState(false);
-	const waiting = !!heroNow && heroId !== heroNow.id;
+	const waiting = !!heroKey && shownKey !== heroKey;
 	useEffect(() => {
-		if (!heroNow || heroNow.id === heroId) return;
-		if (reducedMotion() || heroId === undefined) {
-			setHeroId(heroNow.id);
+		if (!heroKey || heroKey === shownKey) return;
+		if (reducedMotion() || shownKey === undefined) {
+			setShownKey(heroKey);
 			return;
 		}
 		const id = setTimeout(() => {
-			setHeroId(heroNow.id);
+			setShownKey(heroKey);
 			setSwapped(true);
 		}, MOVE_MS);
 		return () => clearTimeout(id);
-	}, [heroNow, heroId]);
+	}, [heroKey, shownKey]);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: a animação roda a cada troca de data
 	useLayoutEffect(() => {
 		playFlip();
@@ -412,7 +461,7 @@ export function SellerView({
 		);
 	};
 
-	const g = greeting(m);
+	const g = greeting(m, action);
 	const counts = {
 		prioridades: m.focus.length,
 		perda: m.review.length,
@@ -423,19 +472,32 @@ export function SellerView({
 	if (tab === "prioridades") {
 		if (!heroNow) body = emptyWeek(m, fromTeam, pickTab);
 		else {
-			const next = m.focus.slice(1, 5);
+			const next = m.focus.slice(action ? 0 : 1, 5);
 			const rest = m.focus.slice(5);
 			body = (
 				<>
-					<Hero
-						key={heroNow.id}
-						d={heroNow}
-						intro={intro}
-						waiting={waiting}
-						swapped={swapped && !waiting}
-						onSwapDone={() => setSwapped(false)}
-						onOpen={onOpen}
-					/>
+					{action ? (
+						<ActionHero
+							key={heroKey}
+							action={action}
+							m={m}
+							waiting={waiting}
+							swapped={swapped && !waiting}
+							onSwapDone={() => setSwapped(false)}
+							go={pickTab}
+							fromTeam={fromTeam}
+						/>
+					) : (
+						<Hero
+							key={heroKey}
+							d={heroNow}
+							intro={intro}
+							waiting={waiting}
+							swapped={swapped && !waiting}
+							onSwapDone={() => setSwapped(false)}
+							onOpen={onOpen}
+						/>
+					)}
 					{next.length > 0 && (
 						<div className="next">
 							{next.map((d, i) => (

@@ -40,22 +40,23 @@ for (const scheme of ["light", "dark"] as const)
 				rows.push({
 					persona: "vendedora",
 					tela: tag,
-					pergunta: "qual negócio atacar primeiro",
+					pergunta: "por onde começar (D46: herói de ação)",
 					ms,
 					cliques: 1,
 					semRolar: await inView(page, hero.locator("h2")),
 					resposta: (await hero.locator("h2").textContent()) ?? "",
 				});
 				await page.screenshot({ path: `${OUT}/vendedora-${tag}.png` });
+				// O nº 1 dela tem score 0 (D46): continua em 1º, como cartão.
 				const t1 = Date.now();
-				await page.getByRole("button", { name: "Ver o motivo" }).click();
+				await page.locator(".mini").first().click();
 				const why = page.locator(".panel.open .why");
 				await expect(why).toBeVisible();
 				await settle(page);
 				rows.push({
 					persona: "vendedora",
 					tela: tag,
-					pergunta: "por que está em primeiro",
+					pergunta: "por que o nº 1 está em primeiro",
 					ms: Date.now() - t1,
 					cliques: 1,
 					semRolar: await inView(page, why),
@@ -124,17 +125,47 @@ for (const scheme of ["light", "dark"] as const)
 					.getByRole("link", { name: "Como funciona" })
 					.first()
 					.click();
-				const bands = page.locator(".bands-card");
-				await expect(bands).toBeVisible();
+				const table = page.locator(".rule table");
+				await expect(table).toBeVisible();
+				const steps = page.locator(".rule .steps");
 				rows.push({
 					persona: "RevOps",
 					tela: tag,
-					pergunta: "como o score funciona",
+					pergunta: "a regra: idade, potencial, score (tabela)",
 					ms: Date.now() - t0,
 					cliques: 1,
-					semRolar: await inView(page, bands),
-					resposta: (await page.locator(".how .lead-sub").textContent()) ?? "",
+					semRolar: await inView(page, table),
+					resposta:
+						(await page.locator(".how-head .lead-sub").textContent()) ?? "",
 				});
+				rows.push({
+					persona: "RevOps",
+					tela: tag,
+					pergunta: "a regra: o exemplo em três passos",
+					ms: 0,
+					cliques: 0,
+					semRolar: await inView(page, steps),
+					resposta: (await steps.locator("li").last().textContent()) ?? "",
+				});
+				// Leitura: palavras do texto principal (sem "Ver detalhes"), a 200 palavras por minuto.
+				const words = (sel: string) =>
+					page.locator(sel).evaluate((el) => {
+						const c = el.cloneNode(true) as HTMLElement;
+						for (const d of c.querySelectorAll("details")) d.remove();
+						return (c.textContent ?? "").split(/\s+/).filter(Boolean).length;
+					});
+				const rule = await words(".rule");
+				const all = await words(".how");
+				rows.push({
+					persona: "RevOps",
+					tela: tag,
+					pergunta: "leitura: regra / página inteira (palavras)",
+					ms: 0,
+					cliques: 0,
+					semRolar: false,
+					resposta: `${rule} / ${all} palavras; ${Math.round((rule / 200) * 60)} s / ${Math.round((all / 200) * 60)} s a 200 palavras/min`,
+				});
+				await expect(page.locator(".proof")).toHaveCount(3);
 				await page.screenshot({
 					path: `${OUT}/revops-${tag}.png`,
 					fullPage: true,

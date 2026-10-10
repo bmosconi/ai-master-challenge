@@ -45,6 +45,93 @@ test("vendedor: o nº 1 é o herói, e o painel mostra a conta com o mesmo núme
 	await expect(page.locator("[role=img] button")).toHaveCount(0);
 });
 
+test("saudação: conta só os 5 primeiros (D47)", async ({ page }) => {
+	await enter(page, "Zane Levy");
+	await expect(page.locator(".greet")).toContainText(
+		/Comece por estes 5\. (Destes, .+ nesta semana\.|Nenhum deles esfria nesta semana\.)/,
+	);
+});
+
+test("herói com score baixo: vira a prospecção, e o nº 1 fica como cartão (D46)", async ({
+	page,
+}) => {
+	await enter(page, "Anna Snelling");
+	await expect(page.locator(".greet")).toContainText("Comece pela prospecção.");
+	const hero = page.locator(".hero");
+	await expect(hero).toContainText("55 contatos sem negócio aberto");
+	await expect(hero).toContainText("US$ 77.845");
+	await expect(hero).toContainText("score 0");
+	const card = page.locator(".mini", { hasText: "MG Special" });
+	await expect(card).toContainText("1º");
+	await hero.getByRole("button", { name: "Ver a prospecção" }).click();
+	await expect(tab(page, "Prospecção")).toHaveAttribute(
+		"aria-selected",
+		"true",
+	);
+});
+
+test("herói de ação visto pelo gestor: fala de Anna, não de 'seu' (D46)", async ({
+	page,
+}) => {
+	await enter(page, "Dustin Brinkmann");
+	await page
+		.getByRole("button", { name: /Anna Snelling/ })
+		.first()
+		.click();
+	const goWeek = page.getByRole("button", { name: "Abrir a semana de Anna" });
+	if (await goWeek.isVisible()) await goWeek.click();
+	const hero = page.locator(".hero");
+	await expect(hero).toContainText("O nº 1 de Anna, MG Special, tem score 0");
+	await expect(hero).not.toContainText("O seu nº 1");
+});
+
+test("como funciona: a regra na primeira tela, as três provas e os termos técnicos só nos detalhes", async ({
+	page,
+}) => {
+	await page.setViewportSize({ width: 1280, height: 800 });
+	await enter(page, "Zane Levy");
+	await page.getByRole("link", { name: "Como funciona" }).first().click();
+	const how = page.locator(".how");
+	// A primeira tabela inteira cabe na primeira tela em 1280 (D48).
+	const last = page.getByRole("row", { name: /Mais de 138 dias/ });
+	const box = await last.boundingBox();
+	expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(800);
+	await expect(how).toContainText("O nº 1 do Zane em 31/12/2017: GTX Plus Pro");
+	await expect(how).toContainText("US$ 2.577");
+	await expect(how).toContainText(
+		"Score 98: o potencial dele passa o de 98 de cada 100",
+	);
+	for (const t of [
+		"Quanto mais tempo o negócio fica aberto, menor a chance de fechar.",
+		"É ilusão: os que nunca fecham ficam fora da conta.",
+		"Os 10 primeiros de cada vendedor trouxeram 41%",
+		"pelo preço, 33%; no sorteio, 14%",
+		"O resultado se repetiu nas três datas.",
+		"Um modelo de inteligência artificial mais complexo chegou a 43%",
+		"Não mudam: a diferença é do tamanho que o acaso produz.",
+		"Olhamos a taxa de ganho",
+		"Os dados não separam o efeito do vendedor do efeito da carteira e da região.",
+		"O vendedor não muda a chance de fechar, mas muda quanto do funil dele esfria",
+		"A base começa cortada em março de 2017.",
+		"A chance é histórico, não previsão, e superestima a venda.",
+		"O fim de trimestre pesa",
+	])
+		await expect(how).toContainText(t);
+	// Linguagem: fora de "Ver detalhes", nenhum termo técnico.
+	const visible = await how.evaluate((el) => {
+		const c = el.cloneNode(true) as HTMLElement;
+		for (const d of c.querySelectorAll("details")) d.remove();
+		return c.textContent ?? "";
+	});
+	expect(visible).not.toMatch(
+		/backtest|coorte|margem de erro|p-valor|IC 95|qui-quadrado|gradient|bootstrap/i,
+	);
+	const more = how.locator("details").nth(1);
+	await expect(more.getByText(/Backtest nas datas/)).toBeHidden();
+	await more.locator("summary").click();
+	await expect(more.getByText(/Backtest nas datas/)).toBeVisible();
+});
+
 test("troca de data com movimento: o herói de 31/12 não aparece em 30/09 nem por um quadro (D34)", async ({
 	browser,
 }) => {
@@ -227,4 +314,10 @@ for (const width of [1280, 390])
 			() => document.documentElement.scrollWidth - innerWidth,
 		);
 		expect(overflow, "equipe").toBeLessThanOrEqual(0);
+		await page.goto("/#como-funciona");
+		await page.locator(".how details").first().waitFor();
+		const how = await page.evaluate(
+			() => document.documentElement.scrollWidth - innerWidth,
+		);
+		expect(how, "como funciona").toBeLessThanOrEqual(0);
 	});

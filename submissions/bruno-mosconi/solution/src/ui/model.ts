@@ -1,7 +1,9 @@
 // O que a tela mostra de cada negócio, lido do núcleo. Nenhuma regra nova aqui.
 
+import mlCsv from "../../analysis/saidas/ml-por-vendedor.csv?raw";
 import { teamStatus } from "../core/analysis.ts";
 import { type Deal, priceOf } from "../core/data.ts";
+import { type Evidence, evidence } from "../core/evidence.ts";
 import {
 	chancePhrase,
 	type Deadline,
@@ -18,6 +20,8 @@ import {
 	type BandChance,
 	bandForAge,
 	chanceCurve,
+	concludedOnlyCurve,
+	REFERENCE_DATE,
 	type ScoredDeal,
 	STALE_AFTER,
 	scoreOpen,
@@ -118,6 +122,53 @@ export function sellerModel(day: DayModel, name: string): SellerModel {
 	};
 }
 
+/**
+ * D46 (regra de apresentação, não de score): se o nº 1 tem score abaixo de 25, o herói passa a
+ * ser a ação que mais pesa na semana: a prospecção, se houver (só na data padrão, D13), ou os
+ * frios. A ordem da lista não muda; o nº 1 vira um cartão normal.
+ */
+export const LOW_SCORE = 25;
+export type HeroAction = "prospeccao" | "perda";
+
+export function heroAction(m: SellerModel, t: number): HeroAction | null {
+	const top = m.focus[0];
+	if (!top || (top.score ?? 0) >= LOW_SCORE) return null;
+	if (t === REFERENCE_DATE && m.prospect.length) return "prospeccao";
+	return m.review.length ? "perda" : null;
+}
+
+/** A saudação (D47): conta só os 5 de "Comece por estes". */
+export function greeting(
+	m: SellerModel,
+	action: HeroAction | null,
+): { lead: string; urg: string } {
+	const top = m.focus.slice(0, 5);
+	if (!top.length) return { lead: "", urg: "" };
+	if (action)
+		return {
+			lead:
+				action === "prospeccao"
+					? "Comece pela prospecção."
+					: "Comece atualizando os frios.",
+			urg: "",
+		};
+	if (top.length === 1) return { lead: "Comece por este.", urg: "" };
+	const soon = (kind: Deadline["kind"]) =>
+		top.filter((d) => d.deadline?.kind === kind && d.deadline.days <= 7).length;
+	const cool = soon("esfria");
+	const cold = soon("parado");
+	const parts = [
+		cool && `${cool} ${cool === 1 ? "esfria" : "esfriam"}`,
+		cold && `${cold} ${cold === 1 ? "fica frio" : "ficam frios"}`,
+	].filter(Boolean);
+	return {
+		lead: `Comece por estes ${top.length}.`,
+		urg: parts.length
+			? `Destes, ${parts.join(" e ")} nesta semana.`
+			: "Nenhum deles esfria nesta semana.",
+	};
+}
+
 export const teamOf = (manager: string) =>
 	ds.agents.filter((a) => a.manager === manager).map((a) => a.name);
 
@@ -142,3 +193,13 @@ export const maxPotential = (ts: readonly number[]) =>
 				.map(shownWeighted),
 		),
 	);
+
+let proofs: Evidence | undefined;
+/** As provas do "Como funciona", calculadas uma vez, quando a página abre pela primeira vez. */
+export const evidenceOnce = (): Evidence => {
+	proofs ??= evidence(ds, mlCsv);
+	return proofs;
+};
+
+/** O cálculo errado (só concluídos), para mostrar o engano na mesma data da regra. */
+export const illusionCurve = (t: number) => concludedOnlyCurve(ds.deals, t);

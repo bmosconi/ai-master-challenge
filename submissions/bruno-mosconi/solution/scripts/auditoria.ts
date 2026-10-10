@@ -34,6 +34,7 @@ import {
 	SNAPSHOTS,
 } from "../src/core/backtest.ts";
 import { day, isoDate, rows } from "../src/core/data.ts";
+import { evidence } from "../src/core/evidence.ts";
 import {
 	BANDS,
 	chanceCurve,
@@ -742,6 +743,21 @@ for (const [tr, label] of RULES) {
 	};
 	h(
 		`| ${label} | ${r.snapshots.map(date).join(", ")} | ${pct(r.share.weighted, 2)} | ${pct(r.share.situationThenPrice, 2)} | ${pct(r.share.price, 2)} | ${pt("price")} | ${pt("situationThenPrice")} | ${pt("priceNoStale")} |`,
+	);
+}
+{
+	// O mesmo número do "Como funciona" (src/core/evidence.ts): o ML de analysis/significancia_ml.py
+	// (semente 0) nas mesmas unidades vendedor × data do backtest da regra final.
+	const b = evidence(
+		ds,
+		readFileSync(
+			new URL("../analysis/saidas/ml-por-vendedor.csv", import.meta.url),
+			"utf8",
+		),
+	).backtest;
+	const x = b.mlVsWeighted;
+	h(
+		`\nModelo de ML na regra final (${b.dates.map((d) => date(d.t)).join(", ")}): ${pct(b.ml, 2)} contra ${pct(b.weighted, 2)} do valor ponderado; ML − ponderado = ${num(x.difference * 100, 2)} p.p. (IC ${num(x.ci95[0] * 100, 2)} a ${num(x.ci95[1] * 100, 2)}; p ${num(x.pSignFlip, 4)}). Por data, ponderado · só preço · aleatório: ${b.dates.map((d) => `${date(d.t)} ${pct(d.weighted, 2)} · ${pct(d.price, 2)} · ${pct(d.random, 2)}`).join("; ")}.`,
 	);
 }
 h(
