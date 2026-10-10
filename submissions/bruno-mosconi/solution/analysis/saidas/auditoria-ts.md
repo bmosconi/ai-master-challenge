@@ -204,6 +204,14 @@ Backtest só nas datas disponíveis, e teste pareado (unidade = vendedor). O CA3
 
 Modelo de ML na regra final (31/07/2017, 31/08/2017, 30/09/2017): 43,18% contra 40,86% do valor ponderado; ML − ponderado = 2,32 p.p. (IC -2,46 a 6,39; p 0,3347). Captura na regra final: weighted 40,86% · situationThenPrice 40,74% · priceNoStale 37,64% · price 33,20% · concludedOnly 29,09% · aleatório 14,07%. Por data, ponderado · só preço · aleatório: 31/07/2017 37,77% · 35,56% · 13,92%; 31/08/2017 38,52% · 34,00% · 14,35%; 30/09/2017 47,70% · 29,01% · 13,97%.
 
+Por regional em 31/12/2017 (vendedores; negócios quentes e esfriando; vendedores sem nenhum; prospecção; % frio do valor em andamento com data):
+
+| Regional | Vendedores | Quentes e esfriando | Sem prioridade | Prospecção | Frio |
+|---|---|---|---|---|---|
+| Central | 11 | 5 | 7 | 500 | 99,2% |
+| East | 12 | 107 | 5 | 0 | 75,6% |
+| West | 12 | 186 | 2 | 0 | 78,7% |
+
 Calibração: prevista pela curva em T × ganha até 31/12/2017, para os abertos com até 138 dias. "Ainda podiam concluir" são os que, em 31/12, estavam abertos com até 138 dias: o teto supõe que todos virariam venda.
 
 | Foto | Abertos | Realizada | Ainda podiam concluir | Teto | Prevista: limpa | Prevista: entrada tardia | Prevista: sem correção |

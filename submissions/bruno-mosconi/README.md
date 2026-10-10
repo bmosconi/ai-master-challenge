@@ -33,7 +33,7 @@ O app em uso (prints em `process-log/screenshots/03-app/`, em 1280 e 390 px, cla
 | Tela | O que mostra | Print |
 |---|---|---|
 | Minha semana (Zane Levy, 31/12/2017) | O nº 1 é o GTX Plus Pro da The New York Inquirer, aberto há 21 dias: US$ 5.482 × 47% = US$ 2.577 de potencial, score 98. Motivo: "De cada 100 negócios iniciados, 47 fecharam venda." | `02-vendedor-1280-claro.webp`, `03-painel-1280-claro.webp` |
-| Minha semana (Anna Snelling) | O único negócio dela com prazo tem score 0. O herói passa a ser a prospecção: 55 contatos, US$ 77.845 a preço de lista | `11-heroi-acao-1280-claro.webp` |
+| Minha semana (Anna Snelling) | O único negócio dela com prazo tem score 0. O herói passa a ser a prospecção: 55 negócios em prospecção para iniciar contato (US$ 77.845 a preço de lista) | `11-heroi-acao-1280-claro.webp` |
 | Minha equipe (Summer Sewald) | "US$ 718 mil frios na equipe. Kary concentra US$ 229 mil." | `06-gestor-1280-claro.webp` |
 | Como funciona | A regra numa tela, as três provas e as limitações | `09-como-funciona-1280-claro.webp` |
 
@@ -121,8 +121,9 @@ Os scripts Python de referência (`solution/analysis/`) são opcionais: `pip ins
 
 1. **Segunda de manhã, cada vendedor começa pelos 5 primeiros da semana.** Na validação, os 10 primeiros da lista trouxeram 41% do que a carteira vendeu nos três meses seguintes.
 2. **Limpar os frios.** São 1.291 negócios, US$ 3,2 mi a preço de lista, abertos há mais de 138 dias, idade em que nenhum negócio da base fechou. Cada vendedor confirma com o cliente ou dá perda, do mais caro para o mais barato. O funil fica menor e honesto.
-3. **O gestor acompanha quanto da carteira de cada vendedor esfria**, não a taxa de ganho: é o que varia entre vendedores (de 0% a 31%).
-4. **Registrar no CRM a data de início das prospecções e a empresa de todo negócio.** Sem a data, a prospecção não entra na conta da chance; sem a empresa, setor e porte não podem ser testados nos negócios em andamento.
+3. **A regional Central precisa transformar prospecção em negócio.** Os 500 negócios em prospecção da base são todos da Central, que tem só 5 negócios quentes ou esfriando entre 11 vendedores (7 sem nenhum) e 99,2% do valor em andamento frio. East e West têm 107 e 186 negócios quentes ou esfriando e nenhuma prospecção. Nos gestores da Central, a tela da equipe mostra isso.
+4. **O gestor acompanha quanto da carteira de cada vendedor esfria**, não a taxa de ganho: é o que varia entre vendedores (de 0% a 31%).
+5. **Registrar no CRM a data de início das prospecções e a empresa de todo negócio.** Sem a data, a prospecção não entra na conta da chance; sem a empresa, setor e porte não podem ser testados nos negócios em andamento.
 
 ### Limitações e como escalar
 

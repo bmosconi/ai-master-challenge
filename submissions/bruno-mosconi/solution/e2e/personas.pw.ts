@@ -32,7 +32,10 @@ for (const scheme of ["light", "dark"] as const)
 			}) => {
 				await page.goto("/");
 				const t0 = Date.now();
-				await page.getByRole("button", { name: /^\S+ Anna Snelling/ }).click();
+				await page
+					.getByRole("button", { name: /^\S+ Anna Snelling/ })
+					.first()
+					.click();
 				const hero = page.locator(".hero");
 				await expect(hero).toBeVisible();
 				await expect(hero).toHaveCSS("opacity", "1");
@@ -88,7 +91,10 @@ for (const scheme of ["light", "dark"] as const)
 			}) => {
 				await page.goto("/");
 				const t0 = Date.now();
-				await page.getByRole("button", { name: /^\S+ Summer Sewald/ }).click();
+				await page
+					.getByRole("button", { name: /^\S+ Summer Sewald/ })
+					.first()
+					.click();
 				const lead = page.locator(".lead-h1");
 				await expect(lead).toBeVisible();
 				rows.push({
@@ -118,7 +124,10 @@ for (const scheme of ["light", "dark"] as const)
 
 			test("Head de RevOps: como o score funciona", async ({ page }) => {
 				await page.goto("/");
-				await page.getByRole("button", { name: /^\S+ Summer Sewald/ }).click();
+				await page
+					.getByRole("button", { name: /^\S+ Summer Sewald/ })
+					.first()
+					.click();
 				const t0 = Date.now();
 				await page
 					.getByRole("navigation", { name: "Áreas" })

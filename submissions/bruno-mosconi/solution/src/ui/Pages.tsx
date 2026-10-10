@@ -2,9 +2,17 @@
 
 import entradaClaro from "./assets/entrada-claro.webp";
 import entradaEscuro from "./assets/entrada-escuro.webp";
-import { initials, plural } from "./format.ts";
+import { initials, plural, usdShort } from "./format.ts";
 import { Icon } from "./Icon.tsx";
-import { MANAGERS, PEOPLE } from "./model.ts";
+import {
+	type DayModel,
+	MANAGERS,
+	nothingOpen,
+	PEOPLE,
+	sellerModel,
+	teamModel,
+	weekSummary,
+} from "./model.ts";
 
 export interface Person {
 	role: "vendedor" | "gestor";
@@ -30,11 +38,38 @@ export function Art({
 	);
 }
 
-export function EntryView({ onPick }: { onPick: (p: Person) => void }) {
+/** Três perfis sugeridos, um por situação: semana cheia, semana de prospecção e gestão. */
+const SUGGESTED = [
+	{ role: "vendedor", name: "Zane Levy", why: "semana cheia" },
+	{
+		role: "vendedor",
+		name: "Anna Snelling",
+		why: "semana que começa pela prospecção",
+	},
+	{ role: "gestor", name: "Summer Sewald", why: "visão da equipe" },
+] as const;
+
+export function EntryView({
+	day,
+	onPick,
+}: {
+	day: DayModel;
+	onPick: (p: Person) => void;
+}) {
 	const regionals = [...new Set(PEOPLE.map((a) => a.regional))].sort();
-	const row = (p: Person, sub: string) => (
+	const managerLine = (name: string) => {
+		const st = teamModel(day, name);
+		const cold = st.reduce((s, a) => s + a.slices.parado.listPrice, 0);
+		return `${usdShort(cold)} frios na equipe`;
+	};
+	const sellers = PEOPLE.map((a) => ({
+		...a,
+		empty: nothingOpen(sellerModel(day, a.name)),
+		summary: weekSummary(day, a.name),
+	}));
+	const row = (p: Person, summary: string, sub: string, key = "") => (
 		<button
-			key={`${p.role}-${p.name}`}
+			key={`${key}${p.role}-${p.name}`}
 			type="button"
 			className="person"
 			onClick={() => onPick(p)}
@@ -42,13 +77,17 @@ export function EntryView({ onPick }: { onPick: (p: Person) => void }) {
 			<span className="avatar lg">{initials(p.name)}</span>
 			<span className="nm">
 				{p.name}
-				<span>{sub}</span>
+				<span>{summary}</span>
+				<span className="sub2">{sub}</span>
 			</span>
 			<span className="chev">
 				<Icon name="caret-right" />
 			</span>
 		</button>
 	);
+	const byName = (a: { name: string }, b: { name: string }) =>
+		a.name.localeCompare(b.name, "pt-BR");
+	const idle = sellers.filter((a) => a.empty).sort(byName);
 	return (
 		<section className="entry">
 			<Art
@@ -64,11 +103,34 @@ export function EntryView({ onPick }: { onPick: (p: Person) => void }) {
 			</p>
 			<div className="people">
 				<div>
+					<h2>Para conhecer o app</h2>
+					<p className="people-note">
+						Sugestões: três perfis que mostram situações diferentes.
+					</p>
+					<div className="card">
+						{SUGGESTED.filter((x) =>
+							(x.role === "gestor" ? MANAGERS : PEOPLE).some(
+								(p) => p.name === x.name,
+							),
+						).map((x) =>
+							row(
+								{ role: x.role, name: x.name },
+								`Sugestão: ${x.why}`,
+								x.role === "gestor"
+									? managerLine(x.name)
+									: weekSummary(day, x.name),
+								"sug-",
+							),
+						)}
+					</div>
+				</div>
+				<div>
 					<h2>Gestor(a)</h2>
 					<div className="card">
 						{MANAGERS.map((m) =>
 							row(
 								{ role: "gestor", name: m.name },
+								managerLine(m.name),
 								`${m.regional}, equipe de ${plural(m.team, "pessoa", "pessoas")}`,
 							),
 						)}
@@ -78,17 +140,33 @@ export function EntryView({ onPick }: { onPick: (p: Person) => void }) {
 					<div key={r}>
 						<h2>Vendedor(a), regional {r}</h2>
 						<div className="card">
-							{PEOPLE.filter((a) => a.regional === r)
-								.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
+							{sellers
+								.filter((a) => a.regional === r && !a.empty)
+								.sort(byName)
 								.map((a) =>
 									row(
 										{ role: "vendedor", name: a.name },
+										a.summary,
 										`Equipe de ${a.manager}`,
 									),
 								)}
 						</div>
 					</div>
 				))}
+				{idle.length > 0 && (
+					<div>
+						<h2>Sem negócios em andamento</h2>
+						<div className="card">
+							{idle.map((a) =>
+								row(
+									{ role: "vendedor", name: a.name },
+									a.summary,
+									`Regional ${a.regional}, equipe de ${a.manager}`,
+								),
+							)}
+						</div>
+					</div>
+				)}
 			</div>
 		</section>
 	);

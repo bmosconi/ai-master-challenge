@@ -2,10 +2,13 @@
 
 import { expect, type Page, test } from "@playwright/test";
 
-/** Na entrada, o botão da pessoa começa pelas iniciais e o nome ("ZL Zane Levy …"). */
+/** Na entrada, o botão da pessoa começa pelas iniciais e o nome ("ZL Zane Levy …"); as sugestões repetem alguns nomes. */
 const enter = async (page: Page, name: string) => {
 	await page.goto("/#entrada");
-	await page.getByRole("button", { name: new RegExp(`^\\S+ ${name}`) }).click();
+	await page
+		.getByRole("button", { name: new RegExp(`^\\S+ ${name}`) })
+		.first()
+		.click();
 };
 const panel = (page: Page) =>
 	page.getByRole("dialog", { name: "Detalhe do negócio" });
@@ -58,8 +61,14 @@ test("herói com score baixo: vira a prospecção, e o nº 1 fica como cartão (
 	await enter(page, "Anna Snelling");
 	await expect(page.locator(".greet")).toContainText("Comece pela prospecção.");
 	const hero = page.locator(".hero");
-	await expect(hero).toContainText("55 contatos sem negócio aberto");
-	await expect(hero).toContainText("US$ 77.845");
+	await expect(hero.locator("h2")).toHaveText(
+		"55 negócios em prospecção para iniciar contato",
+	);
+	// O valor a preço de lista é apoio, não o número grande (que nos outros é o potencial).
+	await expect(hero.locator(".acct")).toContainText(
+		"US$ 77.845 a preço de lista",
+	);
+	await expect(hero.locator(".hero-pot")).toHaveCount(0);
 	await expect(hero).toContainText("score 0");
 	const card = page.locator(".mini", { hasText: "MG Special" });
 	await expect(card).toContainText("1º");
@@ -78,11 +87,71 @@ test("herói de ação visto pelo gestor: fala de Anna, não de 'seu' (D46)", as
 		.getByRole("button", { name: /Anna Snelling/ })
 		.first()
 		.click();
-	const goWeek = page.getByRole("button", { name: "Abrir a semana de Anna" });
-	if (await goWeek.isVisible()) await goWeek.click();
+	// A prévia segue a regra da semana dela: começa pela prospecção.
+	const preview = page.locator(".preview");
+	await expect(preview).toContainText("Começaria pela prospecção");
+	await expect(preview).toContainText(
+		"55 negócios em prospecção para iniciar contato, US$ 77.845 a preço de lista",
+	);
+	await page.getByRole("button", { name: "Abrir a semana de Anna" }).click();
 	const hero = page.locator(".hero");
 	await expect(hero).toContainText("O nº 1 de Anna, MG Special, tem score 0");
 	await expect(hero).not.toContainText("O seu nº 1");
+});
+
+test("equipe da Central: 99,8% frio (não 100%) e a prospecção como trabalho da equipe", async ({
+	page,
+}) => {
+	await enter(page, "Dustin Brinkmann");
+	await expect(page.locator(".lead-sub")).toContainText(
+		"99,8% do valor em andamento está frio",
+	);
+	await expect(page.locator(".prospect-note")).toContainText(
+		"204 negócios em prospecção esperam o primeiro contato",
+	);
+	await expect(page.locator(".prospect-note")).toContainText(
+		"A equipe precisa transformar prospecção em negócio.",
+	);
+	await enter(page, "Summer Sewald");
+	await expect(page.locator(".prospect-note")).toHaveCount(0);
+});
+
+test("quem é você: sugestões no topo, o que cada um vai encontrar e os sem negócios no fim", async ({
+	page,
+}) => {
+	await page.goto("/#semana");
+	// Visitante novo: o endereço acompanha a tela.
+	await expect(page).toHaveURL(/#entrada$/);
+	const groups = page.locator(".people > div");
+	await expect(groups.first().locator("h2")).toHaveText("Para conhecer o app");
+	await expect(groups.first()).toContainText("Sugestão: semana cheia");
+	await expect(groups.first()).toContainText("31 prioridades");
+	await expect(groups.first()).toContainText(
+		"Sugestão: semana que começa pela prospecção",
+	);
+	await expect(groups.first()).toContainText("US$ 718 mil frios na equipe");
+	await expect(groups.last().locator("h2")).toHaveText(
+		"Sem negócios em andamento",
+	);
+	await expect(groups.last()).toContainText("Carl Lin");
+	await expect(
+		page.getByRole("button", {
+			name: /Anna Snelling.*Semana de prospecção: 55 negócios/,
+		}),
+	).toHaveCount(2);
+});
+
+test("as abas ficam no mesmo lugar para todo vendedor", async ({ page }) => {
+	const place = async (name: string) => {
+		await enter(page, name);
+		const g = await page.locator(".greet").boundingBox();
+		const t = await page.getByRole("tablist").boundingBox();
+		return { below: (t?.y ?? 0) > (g?.y ?? 0) + (g?.height ?? 0) - 1, x: t?.x };
+	};
+	const zane = await place("Zane Levy");
+	const anna = await place("Anna Snelling");
+	expect(zane.below && anna.below).toBe(true);
+	expect(anna.x).toBe(zane.x);
 });
 
 test("como funciona: a regra na primeira tela, as três provas e os termos técnicos só nos detalhes", async ({
@@ -343,4 +412,15 @@ test("sem chamada de rede: toda requisição é do próprio site (CA9)", async (
 		await d.click();
 	await page.waitForLoadState("networkidle");
 	expect(outside).toEqual([]);
+});
+
+test('celular: o selo "o exemplo" não quebra no meio', async ({ page }) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	await page.goto("/#como-funciona");
+	const tag = page.locator(".mine-tag");
+	const h = await tag.evaluate((el) => {
+		const r = el.getClientRects();
+		return r.length;
+	});
+	expect(h).toBe(1);
 });

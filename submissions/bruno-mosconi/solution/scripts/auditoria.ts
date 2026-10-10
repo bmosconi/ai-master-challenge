@@ -23,6 +23,7 @@ import {
 	monthlyFlow,
 	quarterMonthEffect,
 	stageCounts,
+	teamStatus,
 	winRateConcluded,
 	wonValueVsPrice,
 } from "../src/core/analysis.ts";
@@ -36,6 +37,7 @@ import {
 import { day, isoDate, rows } from "../src/core/data.ts";
 import { evidence } from "../src/core/evidence.ts";
 import {
+	agentLists,
 	BANDS,
 	chanceCurve,
 	closedBy,
@@ -759,6 +761,33 @@ for (const [tr, label] of RULES) {
 	h(
 		`\nModelo de ML na regra final (${b.dates.map((d) => date(d.t)).join(", ")}): ${pct(b.ml, 2)} contra ${pct(b.weighted, 2)} do valor ponderado; ML − ponderado = ${num(x.difference * 100, 2)} p.p. (IC ${num(x.ci95[0] * 100, 2)} a ${num(x.ci95[1] * 100, 2)}; p ${num(x.pSignFlip, 4)}). Captura na regra final: ${METHOD_NAMES.map((m) => `${m} ${pct(b.all[m], 2)}`).join(" · ")} · aleatório ${pct(b.random, 2)}. Por data, ponderado · só preço · aleatório: ${b.dates.map((d) => `${date(d.t)} ${pct(d.weighted, 2)} · ${pct(d.price, 2)} · ${pct(d.random, 2)}`).join("; ")}.`,
 	);
+}
+{
+	// Retrato por regional em 31/12/2017: onde estão as prioridades e a prospecção (achado do Bruno).
+	const curve = chanceCurve(ds.deals, T);
+	h(
+		"\nPor regional em 31/12/2017 (vendedores; negócios quentes e esfriando; vendedores sem nenhum; prospecção; % frio do valor em andamento com data):\n",
+	);
+	h(
+		"| Regional | Vendedores | Quentes e esfriando | Sem prioridade | Prospecção | Frio |\n|---|---|---|---|---|---|",
+	);
+	for (const r of [...new Set(ds.agents.map((a) => a.regional))].sort()) {
+		const names = ds.agents.filter((a) => a.regional === r).map((a) => a.name);
+		const lists = names.map((n) => agentLists(ds, T, n, curve));
+		const st = teamStatus(ds, T, names, curve);
+		const cold = st.reduce((x, a) => x + a.slices.parado.listPrice, 0);
+		const all = st.reduce(
+			(x, a) =>
+				x +
+				a.slices["no-prazo"].listPrice +
+				a.slices.esfriando.listPrice +
+				a.slices.parado.listPrice,
+			0,
+		);
+		h(
+			`| ${r} | ${names.length} | ${int(lists.reduce((x, l) => x + l.focus.length, 0))} | ${lists.filter((l) => !l.focus.length).length} | ${int(lists.reduce((x, l) => x + l.prospect.length, 0))} | ${pct(cold / all)} |`,
+		);
+	}
 }
 h(
 	'\nCalibração: prevista pela curva em T × ganha até 31/12/2017, para os abertos com até 138 dias. "Ainda podiam concluir" são os que, em 31/12, estavam abertos com até 138 dias: o teto supõe que todos virariam venda.\n',

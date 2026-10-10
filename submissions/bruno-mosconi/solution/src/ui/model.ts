@@ -29,6 +29,7 @@ import {
 } from "../core/rules.ts";
 import { potentialScores } from "../core/score.ts";
 import { dataset as ds } from "./dataset.ts";
+import { plural } from "./format.ts";
 
 export type Temp = "quente" | "esfriando" | "frio";
 
@@ -135,6 +136,38 @@ export function heroAction(m: SellerModel, t: number): HeroAction | null {
 	if (!top || (top.score ?? 0) >= LOW_SCORE) return null;
 	if (t === REFERENCE_DATE && m.prospect.length) return "prospeccao";
 	return m.review.length ? "perda" : null;
+}
+
+/** A ação da semana (D46): quantos negócios, quanto somam a preço de lista e o título. */
+export function actionInfo(m: SellerModel, a: HeroAction) {
+	const list = a === "prospeccao" ? m.prospect : m.review;
+	return {
+		n: list.length,
+		total: list.reduce((s, d) => s + d.price, 0),
+		title:
+			a === "prospeccao"
+				? `${plural(list.length, "negócio", "negócios")} em prospecção para iniciar contato`
+				: `${plural(list.length, "negócio frio", "negócios frios")} para atualizar ou dar perda`,
+	};
+}
+
+/** Sem nada em andamento: nem prioridade, nem frio, nem prospecção. */
+export const nothingOpen = (m: SellerModel) =>
+	!m.focus.length && !m.review.length && !m.prospect.length;
+
+/** O que a pessoa vai encontrar na semana dela, para a tela "Quem é você?". */
+export function weekSummary(day: DayModel, name: string): string {
+	const m = sellerModel(day, name);
+	const a = heroAction(m, day.t);
+	if (a === "prospeccao" || (!m.focus.length && m.prospect.length))
+		return `Semana de prospecção: ${plural(m.prospect.length, "negócio", "negócios")}`;
+	if (a === "perda")
+		return `Semana de frios: ${plural(m.review.length, "negócio", "negócios")}`;
+	if (m.focus.length)
+		return plural(m.focus.length, "prioridade", "prioridades");
+	if (m.review.length)
+		return `Só negócios frios: ${plural(m.review.length, "negócio", "negócios")}`;
+	return "Sem negócios em andamento";
 }
 
 /** A saudação (D47): conta só os 5 de "Comece por estes". */

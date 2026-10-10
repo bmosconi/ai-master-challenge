@@ -6,7 +6,13 @@ import { useMemo, useState } from "react";
 import type { AgentStatus } from "../core/analysis.ts";
 import { first, initials, num, plural, usd, usdShort } from "./format.ts";
 import { Icon } from "./Icon.tsx";
-import { type DayModel, sellerModel, teamModel } from "./model.ts";
+import {
+	actionInfo,
+	type DayModel,
+	heroAction,
+	sellerModel,
+	teamModel,
+} from "./model.ts";
 import { Ring } from "./parts.tsx";
 import { MiniThermo, Thermo } from "./Thermo.tsx";
 
@@ -28,6 +34,9 @@ function Preview({
 	onOpen: (name: string) => void;
 }) {
 	const m = useMemo(() => sellerModel(day, name), [day, name]);
+	// A prévia segue a regra da semana do vendedor (D46): com score baixo, começa pela ação.
+	const action = heroAction(m, day.t);
+	const info = action && actionInfo(m, action);
 	return (
 		<section className="card preview" key={name}>
 			<div>
@@ -39,9 +48,23 @@ function Preview({
 				</p>
 			</div>
 			<Thermo deals={[...m.focus, ...m.review]} pmax={pmax} />
+			{info && (
+				<div>
+					<p className="pv-title">
+						Começaria{" "}
+						{action === "prospeccao" ? "pela prospecção" : "pelos frios"}
+					</p>
+					<p className="pv-action">
+						{info.title}, {usd(info.total)} a preço de lista. O nº 1 tem score{" "}
+						{m.focus[0]?.score}.
+					</p>
+				</div>
+			)}
 			{m.focus.length > 0 && (
 				<div>
-					<p className="pv-title">Começaria por estes</p>
+					<p className="pv-title">
+						{info ? "Prioridades" : "Começaria por estes"}
+					</p>
 					{m.focus.slice(0, 3).map((d) => (
 						<div className="pv-row" key={d.id}>
 							{d.score !== undefined && <Ring score={d.score} size="sm" />}
@@ -98,7 +121,15 @@ export function TeamView({
 	const total = active.reduce((s, a) => s + totalOf(a), 0);
 	const top = active[0];
 	const coldMax = Math.max(...active.map((a) => a.slices.parado.deals), 1);
-	const pct = total ? Math.round((cold / total) * 100) : 0;
+	// Acima de 99,5%, o arredondamento diria 100% com prioridades na equipe: uma casa decimal.
+	const share = total ? cold / total : 0;
+	const pct =
+		share >= 0.995 && share < 1
+			? (share * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })
+			: String(Math.round(share * 100));
+	// Prospecção da equipe (só na data padrão, D13): na Central, é onde está o trabalho.
+	const prospect = [...models.values()].flatMap((m) => m.prospect);
+	const live = status.reduce((s, a) => s + a.focus, 0);
 	// Quem não tem o que avançar nesta semana (D29: situação, não ranking).
 	const noFocus = status.filter((a) => a.focus === 0).map((a) => a.agent);
 
@@ -122,6 +153,20 @@ export function TeamView({
 						{pct}% do valor em andamento está frio: aberto há mais de 138 dias,
 						quando nenhum negócio da base fechou. Peça para atualizar ou dar
 						perda.
+					</p>
+				)}
+				{prospect.length > live && (
+					<p className="lead-note prospect-note">
+						{plural(prospect.length, "negócio", "negócios")} em prospecção
+						esperam o primeiro contato (
+						{usdShort(prospect.reduce((s, d) => s + d.price, 0))} a preço de
+						lista), contra{" "}
+						{plural(
+							live,
+							"negócio quente ou esfriando",
+							"negócios quentes ou esfriando",
+						)}
+						. A equipe precisa transformar prospecção em negócio.
 					</p>
 				)}
 				{noFocus.length > 0 && (

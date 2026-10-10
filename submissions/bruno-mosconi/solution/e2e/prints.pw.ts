@@ -9,7 +9,10 @@ import { type Page, test } from "@playwright/test";
 const DIR = "../process-log/screenshots/03-app";
 const enter = async (page: Page, name: string) => {
 	await page.goto("/#entrada");
-	await page.getByRole("button", { name: new RegExp(`^\\S+ ${name}`) }).click();
+	await page
+		.getByRole("button", { name: new RegExp(`^\\S+ ${name}`) })
+		.first()
+		.click();
 };
 
 for (const scheme of ["light", "dark"] as const)
@@ -99,7 +102,10 @@ for (const width of [1280, 390])
 		});
 		const page = await ctx.newPage();
 		await page.goto("/#entrada");
-		await page.getByRole("button", { name: /^\S+ Zane Levy/ }).click();
+		await page
+			.getByRole("button", { name: /^\S+ Zane Levy/ })
+			.first()
+			.click();
 		await page.waitForTimeout(1500);
 		const pick = async (label: string, full: string) =>
 			desk
@@ -179,4 +185,19 @@ test.afterAll(() => {
 			// sem ffmpeg, o vídeo fica como o Playwright gravou
 		}
 	}
+});
+
+// Ícone para iPhone e imagem de prévia de link (Open Graph), em public/: refeitos com o app.
+test.describe("ícone e prévia de link", () => {
+	test.use({ colorScheme: "light", deviceScaleFactor: 1 });
+	test("apple-touch-icon e og.jpg", async ({ page }) => {
+		await page.setViewportSize({ width: 180, height: 180 });
+		await page.goto("/favicon.svg");
+		await page.screenshot({ path: "public/apple-touch-icon.png" });
+		await page.setViewportSize({ width: 1200, height: 630 });
+		await enter(page, "Zane Levy");
+		await page.locator(".hero").waitFor();
+		await page.waitForTimeout(900);
+		await page.screenshot({ path: "public/og.jpg", type: "jpeg", quality: 85 });
+	});
 });

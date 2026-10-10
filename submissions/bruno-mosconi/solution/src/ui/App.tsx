@@ -155,6 +155,13 @@ export function App() {
 		return () => removeEventListener("hashchange", on);
 	}, [person]);
 
+	// Quem chega sem pessoa escolhida vê "Quem é você?": o endereço acompanha (#entrada).
+	useEffect(() => {
+		const entry = area === "entrada" || (!person && area !== "como-funciona");
+		if (entry && location.hash !== "#entrada")
+			history.replaceState(null, "", "#entrada");
+	}, [area, person]);
+
 	const manager =
 		person?.role === "gestor"
 			? person.name
@@ -200,7 +207,7 @@ export function App() {
 
 	let page: ReactNode;
 	if (area === "entrada" || (!person && area !== "como-funciona"))
-		page = <EntryView onPick={pick} />;
+		page = <EntryView day={day} onPick={pick} />;
 	else if (area === "como-funciona") page = <HowView day={day} />;
 	else if (showWeek)
 		page = (

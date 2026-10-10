@@ -16,6 +16,7 @@ import { DealPanel } from "./DealPanel.tsx";
 import { date, days, first, num, plural, usd, usdShort } from "./format.ts";
 import { Icon, type IconName } from "./Icon.tsx";
 import {
+	actionInfo,
 	type DayModel,
 	type DealView,
 	greeting,
@@ -148,8 +149,7 @@ function ActionHero({
 	go: (t: Tab) => void;
 }) {
 	const pros = action === "prospeccao";
-	const list = pros ? m.prospect : m.review;
-	const total = list.reduce((a, d) => a + d.price, 0);
+	const info = actionInfo(m, action);
 	const top = m.focus[0] as DealView;
 	return (
 		<article
@@ -166,15 +166,14 @@ function ActionHero({
 				) : (
 					<TempTag temp="frio" label="Frios" />
 				)}
-				<h2>
+				<h2>{info.title}</h2>
+				<p className="acct">
+					{usd(info.total)} a preço de lista
 					{pros
-						? `${plural(list.length, "contato", "contatos")} sem negócio aberto`
-						: `${plural(list.length, "negócio aberto", "negócios abertos")} há mais de ${STALE_AFTER} dias`}
-				</h2>
+						? ". Ainda sem data de início no CRM."
+						: `, abertos há mais de ${STALE_AFTER} dias.`}
+				</p>
 			</div>
-			<p className="hero-pot">
-				<span className="num">{usd(total)}</span>a preço de lista
-			</p>
 			<div className="hero-do">
 				<h3>{pros ? "Faça o primeiro contato." : "Atualize ou dê perda."}</h3>
 				<p>
