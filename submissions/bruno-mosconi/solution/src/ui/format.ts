@@ -25,3 +25,15 @@ export const pct = (x: number) => `${one.format(x * 100)}%`;
 
 export const date = (day: number) =>
 	isoDate(day).split("-").reverse().join("/");
+
+export const plural = (n: number, one: string, many: string) =>
+	`${int.format(n)} ${n === 1 ? one : many}`;
+
+export const days = (n: number) => plural(n, "dia", "dias");
+
+export const first = (name: string) => name.split(" ")[0] ?? name;
+export const initials = (name: string) =>
+	name
+		.split(" ")
+		.map((x) => x[0])
+		.join("");

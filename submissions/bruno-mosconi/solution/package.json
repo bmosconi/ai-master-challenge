@@ -13,8 +13,9 @@
 		"check": "tsc --noEmit && biome check . && vitest run",
 		"test": "vitest run",
 		"e2e": "playwright test e2e/fluxos.pw.ts",
-		"prints": "playwright test e2e/prints.pw.ts",
-		"auditoria": "node scripts/auditoria.ts"
+		"prints": "playwright test e2e/prints.pw.ts --workers=1",
+		"auditoria": "node scripts/auditoria.ts",
+		"personas": "playwright test e2e/personas.pw.ts --workers=1"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.15",
@@ -28,7 +29,6 @@
 		"vitest": "5.0.3"
 	},
 	"dependencies": {
-		"@fontsource-variable/source-sans-3": "5.3.0",
 		"react": "19.3.0",
 		"react-dom": "19.3.0"
 	}

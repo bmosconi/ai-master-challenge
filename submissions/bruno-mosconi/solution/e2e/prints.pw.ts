@@ -1,58 +1,174 @@
-// Prints do portão visual (D12): vendedor e gestor, em 1280 e 390 px.
+// Prints e vídeo do incremento 4 (D41–D44): 1280 e 390 px, claro e escuro.
+// Saída em process-log/screenshots/03-app/. Para o repositório não pesar, os PNG viram WebP
+// quando o cwebp está instalado; sem ele, ficam em PNG.
 
+import { execFileSync } from "node:child_process";
+import { readdirSync, renameSync, rmSync, unlinkSync } from "node:fs";
 import { type Page, test } from "@playwright/test";
 
-const DIR = "../process-log/screenshots/02-app";
-const WIDTHS = [1280, 390];
+const DIR = "../process-log/screenshots/03-app";
+const enter = async (page: Page, name: string) => {
+	await page.goto("/#entrada");
+	await page.getByRole("button", { name: new RegExp(`^\\S+ ${name}`) }).click();
+};
 
-const shot = (page: Page, name: string, width: number) =>
-	page.screenshot({ path: `${DIR}/${name}-${width}.png`, fullPage: true });
+for (const scheme of ["light", "dark"] as const)
+	for (const width of [1280, 390]) {
+		const tag = `${width}-${scheme === "light" ? "claro" : "escuro"}`;
+		const desk = width > 600;
+		test.describe(tag, () => {
+			test.use({
+				viewport: { width, height: desk ? 860 : 844 },
+				deviceScaleFactor: desk ? 1 : 2,
+				colorScheme: scheme,
+			});
+			const shot = (page: Page, name: string, full = desk) =>
+				page.screenshot({ path: `${DIR}/${name}-${tag}.png`, fullPage: full });
 
-for (const width of WIDTHS) {
-	test.describe(`${width} px`, () => {
-		test.use({ viewport: { width, height: width > 600 ? 900 : 844 } });
+			test("vendedor, painel e equipe", async ({ page }) => {
+				await enter(page, "Zane Levy");
+				await shot(page, "02-vendedor");
+				if (!desk) {
+					await page.locator(".thermo-card").scrollIntoViewIfNeeded();
+					await shot(page, "02-vendedor-rolada");
+					await page.evaluate(() => scrollTo(0, 0));
+				}
+				await page.getByRole("button", { name: "Ver o motivo" }).click();
+				await page.waitForTimeout(350);
+				await shot(page, "03-painel", false);
+				await page.keyboard.press("Escape");
+				await enter(page, "Summer Sewald");
+				await shot(page, "06-gestor");
+				if (!desk) {
+					await page.locator(".member").last().scrollIntoViewIfNeeded();
+					await shot(page, "06-gestor-rolada");
+				}
+			});
 
-		test("gestor: equipe da Summer Sewald", async ({ page }) => {
-			await page.goto("/");
-			await page
-				.getByLabel("Gestor", { exact: true })
-				.selectOption("Summer Sewald");
-			await shot(page, "01-gestor", width);
+			if (scheme === "light")
+				test("entrada, lista completa, frios, vazio, data passada, como funciona", async ({
+					page,
+				}) => {
+					await page.goto("/#entrada");
+					await shot(page, "01-entrada", false);
+					await enter(page, "Zane Levy");
+					await page.getByRole("button", { name: /Ver todos os/ }).click();
+					await page.evaluate(() => scrollTo(0, 0));
+					await shot(page, "04-vendedor-todos", true);
+					await page
+						.getByRole("tab", { name: /^(Atualize ou dê perda|Frios) \d/ })
+						.click();
+					await shot(page, "05-frios");
+					await enter(page, "Cecily Lampkin");
+					await shot(page, "07-vazio", false);
+					await enter(page, "Zane Levy");
+					if (desk)
+						await page
+							.getByRole("group", { name: "Data dos dados" })
+							.getByRole("button", { name: "30/09" })
+							.click();
+					else
+						await page
+							.getByRole("combobox", { name: "Data dos dados" })
+							.selectOption({ label: "30/09/2017" });
+					await shot(page, "08-data-passada");
+					await page.goto("/#como-funciona");
+					await shot(page, "09-como-funciona");
+				});
 		});
+	}
 
-		test("vendedora: Anna Snelling, Foque agora", async ({ page }) => {
-			await page.goto("/");
-			await page
-				.getByLabel("Vendedor", { exact: true })
-				.selectOption("Anna Snelling");
-			await shot(page, "02-vendedora", width);
+// Vídeo dos movimentos: primeira abertura, troca de data (os cartões andam e depois o herói
+// troca), painel; no celular, a folha fechando ao arrastar.
+for (const width of [1280, 390])
+	test(`vídeo ${width}`, async ({ browser }) => {
+		const desk = width > 600;
+		const size = { width, height: desk ? 800 : 844 };
+		const ctx = await browser.newContext({
+			viewport: size,
+			reducedMotion: "no-preference",
+			recordVideo: { dir: `${DIR}/video-tmp`, size },
 		});
-
-		test("vendedor com lista cheia: Zane Levy", async ({ page }) => {
-			await page.goto("/");
-			await page
-				.getByLabel("Vendedor", { exact: true })
-				.selectOption("Zane Levy");
-			await shot(page, "03-lista-cheia", width);
-		});
-
-		test("estado vazio: Cecily Lampkin, só parados e prospecção", async ({
-			page,
-		}) => {
-			await page.goto("/");
-			await page
-				.getByLabel("Vendedor", { exact: true })
-				.selectOption("Cecily Lampkin");
-			await shot(page, "04-estado-vazio", width);
-		});
-
-		test("data passada: Zane Levy em 30/09/2017", async ({ page }) => {
-			await page.goto("/");
-			await page.getByLabel("Dados de").selectOption({ label: "30/09/2017" });
-			await page
-				.getByLabel("Vendedor", { exact: true })
-				.selectOption("Zane Levy");
-			await shot(page, "05-data-passada", width);
-		});
+		const page = await ctx.newPage();
+		await page.goto("/#entrada");
+		await page.getByRole("button", { name: /^\S+ Zane Levy/ }).click();
+		await page.waitForTimeout(1500);
+		const pick = async (label: string, full: string) =>
+			desk
+				? page
+						.getByRole("group", { name: "Data dos dados" })
+						.getByRole("button", { name: label })
+						.click()
+				: page
+						.getByRole("combobox", { name: "Data dos dados" })
+						.selectOption({ label: full });
+		await pick("30/09", "30/09/2017");
+		await page.waitForTimeout(1500);
+		await pick("31/12/2017", "31/12/2017");
+		await page.waitForTimeout(1500);
+		await page.getByRole("button", { name: "Ver o motivo" }).click();
+		await page.waitForTimeout(1300);
+		if (desk) {
+			await page.locator(".mini").nth(1).click();
+			await page.waitForTimeout(1000);
+			await page.keyboard.press("Escape");
+		} else {
+			const grip = await page.locator(".panel-grip").boundingBox();
+			if (grip) {
+				await page.mouse.move(grip.x + 60, grip.y + 20);
+				await page.mouse.down();
+				await page.mouse.move(grip.x + 60, grip.y + 300, { steps: 12 });
+				await page.mouse.up();
+			}
+		}
+		await page.waitForTimeout(900);
+		const video = page.video();
+		await ctx.close();
+		await video?.saveAs(`${DIR}/10-movimentos-${width}.webm`);
+		await video?.delete();
 	});
-}
+
+test.afterAll(() => {
+	rmSync(`${DIR}/video-tmp`, { recursive: true, force: true });
+	for (const f of readdirSync(DIR).filter((f) => f.endsWith(".png"))) {
+		const png = `${DIR}/${f}`;
+		try {
+			execFileSync("cwebp", [
+				"-quiet",
+				"-q",
+				"82",
+				png,
+				"-o",
+				png.replace(/\.png$/, ".webp"),
+			]);
+			unlinkSync(png);
+		} catch {
+			// sem cwebp, o PNG fica
+		}
+	}
+	for (const f of readdirSync(DIR).filter((f) => f.endsWith(".webm"))) {
+		const src = `${DIR}/${f}`;
+		try {
+			execFileSync("ffmpeg", [
+				"-v",
+				"error",
+				"-y",
+				"-i",
+				src,
+				"-c:v",
+				"libvpx-vp9",
+				"-crf",
+				"42",
+				"-b:v",
+				"0",
+				"-row-mt",
+				"1",
+				"-an",
+				`${src}.vp9.webm`,
+			]);
+			renameSync(`${src}.vp9.webm`, src);
+		} catch {
+			// sem ffmpeg, o vídeo fica como o Playwright gravou
+		}
+	}
+});

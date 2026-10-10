@@ -23,8 +23,8 @@ import { type Deal, day, type Stage } from "./data.ts";
 import {
 	chancePhrase,
 	emptyFocus,
-	outOfTen,
 	showAccount,
+	shownPercent,
 	shownWeighted,
 } from "./reason.ts";
 import {
@@ -140,15 +140,14 @@ describe("telas (incremento 4)", () => {
 			for (const s of agentLists(ds, T, name, curve).focus) {
 				const band = bandForAge(curve, s.age);
 				expect(band?.chance).toBe(s.chance);
+				const x = shownPercent(s.chance);
 				expect(chancePhrase(band)).toContain(
-					outOfTen(s.chance) === 0
-						? "menos de 1 de cada 10"
-						: `${outOfTen(s.chance)} de cada 10`,
+					x === 0 ? "menos de 1 fechou" : `, ${x} fech`,
 				);
 			}
 	});
 
-	it("o valor ponderado exibido (preço × chance com uma casa) nunca inverte a ordem, em nenhuma data", () => {
+	it("o potencial exibido (preço × chance inteira) nunca inverte a ordem, em nenhuma data", () => {
 		let rows = 0;
 		for (const { t, available } of availableDates(ds)) {
 			if (!available) continue;
@@ -160,6 +159,14 @@ describe("telas (incremento 4)", () => {
 			}
 		}
 		expect(rows).toBe(6016);
+	});
+
+	it("nenhuma faixa das datas disponíveis exibe 0%: a frase e a conta fecham", () => {
+		for (const { t, available } of availableDates(ds)) {
+			if (!available) continue;
+			for (const band of chanceCurve(ds.deals, t))
+				expect(shownPercent(band.chance)).toBeGreaterThan(0);
+		}
 	});
 
 	it("empresa fora da data padrão: em 30/09, todo negócio sem empresa ainda estava em andamento em 31/12", () => {

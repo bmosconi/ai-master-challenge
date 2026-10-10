@@ -162,7 +162,9 @@ Comandos (atualize esta lista se mudar; os marcados com * ainda não existem e e
 | `npm run dev` | servidor local |
 | `npm run build` | build de produção |
 | `npm run bench` * | teste de desempenho com os dados multiplicados por 100 |
-| `npm run e2e` / `npm run prints` | testes de navegador (build de produção) e prints em `process-log/screenshots/02-app/`. Na primeira vez: `npx playwright install chromium` |
+| `npm run e2e` | testes de navegador no build de produção. Na primeira vez: `npx playwright install chromium` |
+| `npm run prints` | prints (1280 e 390 px, claro e escuro) e vídeo dos movimentos em `process-log/screenshots/03-app/`; viram WebP e VP9 se `cwebp` e `ffmpeg` estiverem instalados |
+| `npm run personas` | medição para o `testador-de-uso`: tempo e cliques até cada persona achar a resposta; saída em `test-results/personas/` |
 | `node --test .claude/hooks/guard-pasta.test.mjs` | testes do hook |
 | `sh tools/adicionar-ao-git.sh` | põe no índice do git os arquivos da pasta com segurança |
 

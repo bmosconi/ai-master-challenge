@@ -1640,7 +1640,8 @@ button.dot:focus-visible {
 	const S = {
 		area: "entrada",
 		iso: P.latest,
-		seller: q.get("vendedor") || "Zane Levy",
+		// Só nomes da equipe: o parâmetro vai para o HTML e não pode carregar marcação.
+		seller: P.at(P.latest).team.some((a) => a.agent === q.get("vendedor")) ? q.get("vendedor") : "Zane Levy",
 		tab: "prioridades",
 		all: false,
 		from: null,

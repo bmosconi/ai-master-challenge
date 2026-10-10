@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
 	chancePhrase,
 	deadline,
-	outOfTen,
 	priceRanks,
+	shownPercent,
 	shownWeighted,
 } from "./reason.ts";
 import type { BandChance, ScoredDeal } from "./rules.ts";
@@ -24,7 +24,7 @@ describe("prazo (D30): só os dois limites, sem prever queda de chance", () => {
 	});
 });
 
-describe("frase da chance (D28): histórico, não previsão", () => {
+describe("frase da chance (D28, D40): histórico, não previsão", () => {
 	const band = (from: number, won: number, atRisk: number): BandChance => ({
 		from,
 		won,
@@ -32,32 +32,32 @@ describe("frase da chance (D28): histórico, não previsão", () => {
 		chance: won / atRisk,
 	});
 
-	it("N é o início da faixa e X sai da mesma chance do score", () => {
+	it("N é o início da faixa e X é a mesma % inteira da conta", () => {
 		const b = band(90, 308, 1000);
-		expect(outOfTen(b.chance)).toBe(3);
+		expect(shownPercent(b.chance)).toBe(31);
 		expect(chancePhrase(b)).toBe(
-			"Dos negócios que chegaram a 90 dias ainda em andamento, 3 de cada 10 viraram venda.",
+			"De cada 100 negócios que chegaram aos 90 dias ainda em andamento, 31 fecharam venda.",
 		);
 	});
 
 	it("faixa 0 e singular", () => {
 		expect(chancePhrase(band(0, 473, 1000))).toBe(
-			"Dos negócios iniciados, 5 de cada 10 viraram venda.",
+			"De cada 100 negócios iniciados, 47 fecharam venda.",
 		);
-		expect(chancePhrase(band(120, 86, 1000))).toBe(
-			"Dos negócios que chegaram a 120 dias ainda em andamento, 1 de cada 10 virou venda.",
-		);
-	});
-
-	it("menos de meio em 10", () => {
-		expect(chancePhrase(band(120, 43, 1000))).toBe(
-			"Dos negócios que chegaram a 120 dias ainda em andamento, menos de 1 de cada 10 virou venda.",
+		expect(chancePhrase(band(120, 10, 1000))).toBe(
+			"De cada 100 negócios que chegaram aos 120 dias ainda em andamento, 1 fechou venda.",
 		);
 	});
 
-	it("parado: sem faixa", () => {
+	it("menos de meio em 100", () => {
+		expect(chancePhrase(band(120, 4, 1000))).toBe(
+			"De cada 100 negócios que chegaram aos 120 dias ainda em andamento, menos de 1 fechou venda.",
+		);
+	});
+
+	it("frio: sem faixa", () => {
 		expect(chancePhrase(null)).toBe(
-			"Nenhum negócio da base virou venda depois de 138 dias em andamento.",
+			"Nenhum negócio da base fechou venda depois de 138 dias em andamento.",
 		);
 	});
 });
@@ -80,8 +80,9 @@ describe("conta do painel e ordem por preço", () => {
 		weighted: price * chance,
 	});
 
-	it("valor exibido = preço × chance com uma casa", () => {
-		expect(shownWeighted(scored("A", 5482, 0.428_57))).toBe(2352); // 5.482 × 42,9%
+	it("potencial exibido = preço × chance inteira", () => {
+		expect(shownWeighted(scored("A", 5482, 0.428_57))).toBe(2357); // 5.482 × 43%
+		expect(shownWeighted(scored("B", 5482, 0.473))).toBe(2577); // 5.482 × 47%
 	});
 
 	it("posição pela ordem de preço, com desempate pelo ID", () => {

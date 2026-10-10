@@ -25,34 +25,33 @@ export function deadline(age: number): Deadline | null {
 	return null;
 }
 
-/** "X de cada 10", arredondado. É a mesma chance que multiplica o preço no valor ponderado. */
-export const outOfTen = (chance: number): number => Math.round(chance * 10);
-
-/** D28: a chance como histórico. `band` = faixa do negócio; null = parado (sem faixa). */
-export function chancePhrase(band: BandChance | null): string {
-	if (band === null)
-		return `Nenhum negócio da base virou venda depois de ${STALE_AFTER} dias em andamento.`;
-	const who =
-		band.from === 0
-			? "Dos negócios iniciados"
-			: `Dos negócios que chegaram a ${band.from} dias ainda em andamento`;
-	const x = outOfTen(band.chance);
-	const howMany =
-		x === 0
-			? "menos de 1 de cada 10 virou venda"
-			: `${x} de cada 10 ${x === 1 ? "virou" : "viraram"} venda`;
-	return `${who}, ${howMany}.`;
-}
-
 /**
- * A conta do painel precisa fechar com o que a tela mostra: chance com uma casa (42,9%) e
- * valor ponderado = preço × essa chance. A ordem continua pelo valor exato; um teste com os
- * dados reais garante que o valor exibido nunca inverte a ordem.
+ * A chance exibida, em % inteira (47%). É o mesmo número da frase "De cada 100" e o que multiplica
+ * o preço na conta do painel (D40). A ordem continua pelo valor exato; um teste com os dados reais
+ * garante que o potencial exibido nunca inverte a ordem.
  */
+export const shownPercent = (chance: number): number =>
+	Math.round(chance * 100);
 export const shownChance = (chance: number): number =>
-	Math.round(chance * 1000) / 1000;
+	shownPercent(chance) / 100;
 export const shownWeighted = (s: Pick<ScoredDeal, "price" | "chance">) =>
 	Math.round(s.price * shownChance(s.chance));
+
+/** D28 e D40: a chance como histórico, com o mesmo número da conta. `band` null = frio (sem faixa). */
+export function chancePhrase(band: BandChance | null): string {
+	if (band === null)
+		return `Nenhum negócio da base fechou venda depois de ${STALE_AFTER} dias em andamento.`;
+	const who =
+		band.from === 0
+			? "De cada 100 negócios iniciados"
+			: `De cada 100 negócios que chegaram aos ${band.from} dias ainda em andamento`;
+	const x = shownPercent(band.chance);
+	const howMany =
+		x === 0
+			? "menos de 1 fechou venda"
+			: `${x} ${x === 1 ? "fechou" : "fecharam"} venda`;
+	return `${who}, ${howMany}.`;
+}
 
 /** Posição de cada negócio se a lista fosse ordenada só por preço (H10: mostrar quando diverge). */
 export function priceRanks(list: readonly ScoredDeal[]): Map<string, number> {

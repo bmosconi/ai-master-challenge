@@ -1,555 +1,608 @@
-// Visão do vendedor: as três listas (AGENTS §7) e o painel com o motivo de cada posição.
+// Minha semana (D41): o negócio nº 1 é o herói; os nº 2 a 5 vêm menores; o resto fica recolhido.
+// O termômetro da carteira fica ao lado (fixo ao rolar) e o painel mostra a conta e o que fazer.
 
-import { Fragment, type ReactNode, useState } from "react";
-import type { Agent, Deal } from "../core/data.ts";
 import {
-	chancePhrase,
-	deadline,
-	emptyFocus,
-	priceRanks,
-	shownChance,
-	shownWeighted,
-} from "../core/reason.ts";
+	type KeyboardEvent,
+	type ReactNode,
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useState,
+} from "react";
+import { REFERENCE_DATE, STALE_AFTER } from "../core/rules.ts";
+import { DealPanel } from "./DealPanel.tsx";
+import { date, days, first, num, plural, usd, usdShort } from "./format.ts";
+import { Icon, type IconName } from "./Icon.tsx";
 import {
-	type AgentLists,
-	type BandChance,
-	bandForAge,
-	REFERENCE_DATE,
-	type ScoredDeal,
-	situation,
-} from "../core/rules.ts";
-import { date, num, pct, usd } from "./format.ts";
+	type DayModel,
+	type DealView,
+	type SellerModel,
+	sellerModel,
+	type Temp,
+} from "./model.ts";
+import { MOVE_MS, playFlip, reducedMotion } from "./motion.ts";
+import {
+	Account,
+	cap,
+	deadlineText,
+	Meta,
+	Ring,
+	TempTag,
+	todo,
+} from "./parts.tsx";
+import { Sheet } from "./Sheet.tsx";
+import { Thermo } from "./Thermo.tsx";
 
-type Tab = "focus" | "review" | "prospect";
+type Tab = "prioridades" | "perda" | "prospeccao";
+const TABS: { key: Tab; label: string; short: string }[] = [
+	{ key: "prioridades", label: "Prioridades da semana", short: "Prioridades" },
+	{ key: "perda", label: "Atualize ou dê perda", short: "Frios" },
+	{ key: "prospeccao", label: "Prospecção", short: "Prospecção" },
+];
 
-export interface Row {
-	id: string;
-	deal: Deal;
-	price: number;
-	scored?: ScoredDeal; // ausente na prospecção
+/** O potencial do herói conta até o valor só na primeira abertura. */
+function useCountUp(target: number, active: boolean) {
+	const [v, setV] = useState(active ? 0 : target);
+	useEffect(() => {
+		if (!active) {
+			setV(target);
+			return;
+		}
+		let raf = 0;
+		const t0 = performance.now() + 80;
+		const step = (now: number) => {
+			const k = Math.min(1, Math.max(0, (now - t0) / 520));
+			setV(Math.round(target * (1 - (1 - k) ** 3)));
+			if (k < 1) raf = requestAnimationFrame(step);
+		};
+		raf = requestAnimationFrame(step);
+		return () => cancelAnimationFrame(raf);
+	}, [target, active]);
+	return v;
 }
 
-interface Column {
-	key: string;
-	label: string;
-	numeric?: boolean;
-	wide?: boolean; // some em 390 px
-	sort?: (r: Row) => number;
-	cell: (r: Row, position: number) => ReactNode;
-}
-
-const dealCell = (r: Row, showAccount: boolean) => (
-	<>
-		{r.deal.product}
-		{showAccount && (
-			<span className="account">
-				{" "}
-				{r.deal.account ?? "Empresa não informada"}
-			</span>
-		)}
-	</>
-);
-
-function AgeBadge({ age }: { age: number }) {
-	const s = situation(age);
-	if (s === "esfriando")
-		return <span className="badge badge-esfriando">Esfriando</span>;
-	if (s === "parado")
-		return (
-			<span className="badge badge-parado">Parado há {num(age)} dias</span>
-		);
-	return null;
-}
-
-function deadlineText(age: number) {
-	const d = deadline(age);
-	if (!d) return "";
-	const days = `${num(d.days)} ${d.days === 1 ? "dia" : "dias"}`;
-	return d.kind === "esfria" ? `Esfria em ${days}` : `Fica parado em ${days}`;
-}
-
-function columnsFor(tab: Tab, showAccount: boolean): Column[] {
-	const position: Column = {
-		key: "pos",
-		label: "Posição",
-		numeric: true,
-		cell: (_, i) => `${i}º`,
-	};
-	const deal: Column = {
-		key: "deal",
-		label: "Negócio",
-		cell: (r) => dealCell(r, showAccount),
-	};
-	const price: Column = {
-		key: "price",
-		label: "Preço de lista",
-		numeric: true,
-		sort: (r) => r.price,
-		cell: (r) => usd(r.price),
-	};
-	if (tab === "prospect") return [position, deal, price];
-	const age: Column = {
-		key: "age",
-		label: "Idade",
-		sort: (r) => r.scored?.age ?? 0,
-		cell: (r) => {
-			const a = r.scored?.age ?? 0;
-			return tab === "review" ? (
-				<AgeBadge age={a} />
-			) : (
-				<>
-					<span className="num">
-						{num(a)} {a === 1 ? "dia" : "dias"}
-					</span>{" "}
-					<AgeBadge age={a} />
-				</>
-			);
-		},
-	};
-	if (tab === "review") return [position, deal, { ...age, wide: true }, price];
-	return [
-		position,
-		deal,
-		{ ...age, wide: true },
-		{
-			key: "deadline",
-			label: "Prazo",
-			wide: true,
-			cell: (r) => deadlineText(r.scored?.age ?? 0),
-		},
-		{ ...price, wide: true },
-		{
-			key: "chance",
-			label: "Chance",
-			numeric: true,
-			wide: true,
-			sort: (r) => r.scored?.chance ?? 0,
-			cell: (r) => pct(shownChance(r.scored?.chance ?? 0)),
-		},
-		{
-			key: "weighted",
-			label: "Valor ponderado",
-			numeric: true,
-			sort: (r) => r.scored?.weighted ?? 0,
-			cell: (r) => (r.scored ? usd(shownWeighted(r.scored)) : ""),
-		},
-	];
-}
-
-function Reason({
-	row,
-	tab,
-	position,
-	listSize,
-	priceRank,
-	band,
-	showAccount,
+function Hero({
+	d,
+	intro,
+	waiting,
+	swapped,
+	onSwapDone,
+	onOpen,
 }: {
-	row: Row;
-	tab: Tab;
-	position: number;
-	listSize: number;
-	priceRank?: number;
-	band: BandChance | null;
-	showAccount: boolean;
+	d: DealView;
+	intro: boolean;
+	waiting: boolean;
+	swapped: boolean;
+	onSwapDone: () => void;
+	onOpen: (id: string) => void;
 }) {
-	const s = row.scored;
-	const title = (
-		<h3>
-			{row.deal.product}
-			{showAccount
-				? ` para ${row.deal.account ?? "empresa não informada"}`
-				: ""}
-			<span className="deal-meta">
-				{row.deal.id}
-				{row.deal.engage !== null
-					? `, iniciado em ${date(row.deal.engage)}`
-					: ""}
-			</span>
-		</h3>
-	);
-	if (tab === "prospect")
-		return (
-			<>
-				{title}
-				<dl>
-					<div>
-						<dt>Por que está aqui</dt>
-						<dd>
-							Prospecção sem contato registrado. A lista segue o preço de lista:{" "}
-							{usd(row.price)}, {position}º de {listSize}.
-						</dd>
-					</div>
-					<div>
-						<dt>O que fazer</dt>
-						<dd>Faça o primeiro contato e registre a data de início.</dd>
-					</div>
-				</dl>
-			</>
-		);
-	if (!s) return null;
-	if (tab === "review")
-		return (
-			<>
-				{title}
-				<dl>
-					<div>
-						<dt>Por que está aqui</dt>
-						<dd className="phrase">
-							Parado há {num(s.age)} dias. {chancePhrase(null)}
-						</dd>
-					</div>
-					<div>
-						<dt>O que fazer</dt>
-						<dd>Retome o contato ou marque como perdido.</dd>
-					</div>
-				</dl>
-			</>
-		);
-	const sit = situation(s.age);
+	const pot = useCountUp(d.potential, intro);
+	const t = todo(d);
 	return (
-		<>
-			{title}
-			<dl>
+		// biome-ignore lint/a11y/useKeyWithClickEvents: o teclado usa o botão "Ver o motivo"
+		<article
+			className={`card hero lift${intro ? " intro" : ""}${swapped ? " swap-in" : ""}${waiting ? " waiting" : ""}`}
+			data-open={d.id}
+			aria-hidden={waiting || undefined}
+			onClick={() => onOpen(d.id)}
+			onAnimationEnd={onSwapDone}
+		>
+			<div className="hero-head">
 				<div>
-					<dt>Posição</dt>
-					<dd>
-						{position}º de {listSize} na Foque agora
-						{priceRank !== undefined && priceRank !== position
-							? `. Pela ordem de preço, estaria em ${priceRank}º.`
-							: "."}
-					</dd>
+					<Meta d={d} />
+					<h2>{d.product}</h2>
+					<Account d={d} className="acct" />
 				</div>
-				<div>
-					<dt>Chance pela idade ({num(s.age)} dias)</dt>
-					<dd className="phrase">{chancePhrase(band)}</dd>
-				</div>
-				<div>
-					<dt>Valor ponderado</dt>
-					<dd className="calc">
-						{usd(s.price)} de preço de lista × {pct(shownChance(s.chance))} ={" "}
-						<strong>{usd(shownWeighted(s))}</strong>
-					</dd>
-				</div>
-				<div>
-					<dt>Prazo</dt>
-					<dd>{deadlineText(s.age)}</dd>
-				</div>
-				<div>
-					<dt>O que fazer</dt>
-					<dd>
-						{sit === "esfriando"
-							? "Retome o contato antes que ele fique parado."
-							: "Avance o negócio esta semana."}
-					</dd>
-				</div>
-			</dl>
-			<p className="footnote">
-				A chance usa só a idade do negócio. Vendedor, produto e empresa foram
-				testados e não mudam a ordem.
+				{d.score !== undefined && (
+					<div className="ring-cap">
+						<Ring score={d.score} size="lg" />
+						<span>Score</span>
+					</div>
+				)}
+			</div>
+			<p className="hero-pot">
+				<span className="num">{usd(pot)}</span>de potencial
 			</p>
-		</>
+			<div className="hero-do">
+				<h3>{t.title}.</h3>
+				<p>{d.phrase}</p>
+			</div>
+			<div className="hero-foot">
+				<button
+					type="button"
+					className="pill primary"
+					data-open={d.id}
+					tabIndex={waiting ? -1 : undefined}
+					onClick={(e) => {
+						e.stopPropagation();
+						onOpen(d.id);
+					}}
+				>
+					Ver o motivo
+				</button>
+			</div>
+		</article>
+	);
+}
+
+function MiniCard({
+	d,
+	i,
+	intro,
+	onOpen,
+}: {
+	d: DealView;
+	i: number;
+	intro: boolean;
+	onOpen: (id: string) => void;
+}) {
+	return (
+		<button
+			type="button"
+			className={`card mini lift${intro ? " intro" : ""}`}
+			style={intro ? { animationDelay: `${120 + i * 40}ms` } : undefined}
+			data-flip={d.id}
+			data-open={d.id}
+			onClick={() => onOpen(d.id)}
+		>
+			<Meta d={d} />
+			<span className="mini-name">
+				<span className="mini-product">{d.product}</span>
+				<Account d={d} className="acct" />
+			</span>
+			<span className="rank">{d.position}º</span>
+			<span className="pot">{usd(d.potential)}</span>
+			{d.score !== undefined && <Ring score={d.score} size="sm" />}
+		</button>
+	);
+}
+
+function Row({ d, onOpen }: { d: DealView; onOpen: (id: string) => void }) {
+	const t = d.temp;
+	return (
+		<button
+			type="button"
+			className="row"
+			data-flip={d.id}
+			data-open={d.id}
+			onClick={() => onOpen(d.id)}
+		>
+			<span className="sc">
+				{t === "frio" ? (
+					<span className="t-frio">
+						<Icon name="snowflake" />
+					</span>
+				) : (
+					d.score
+				)}
+			</span>
+			<span className="nm">
+				<span className="nm-product">{d.product}</span>
+				<Account d={d} className="acct" />
+			</span>
+			<span className="meta-cell">
+				{t === null ? null : t === "frio" ? (
+					<span className="due">Aberto há {days(d.age ?? 0)}</span>
+				) : (
+					<TempTag temp={t} label={cap(deadlineText(d))} />
+				)}
+			</span>
+			<span className="v">
+				{usd(t === "frio" || t === null ? d.price : d.potential)}
+			</span>
+			<span className="chev">
+				<Icon name="caret-right" />
+			</span>
+		</button>
+	);
+}
+
+function Empty({
+	icon,
+	title,
+	text,
+	action,
+}: {
+	icon: IconName;
+	title: string;
+	text: string;
+	action?: { label: string; go: () => void };
+}) {
+	return (
+		<section className="card empty">
+			<span className="empty-icon">
+				<Icon name={icon} />
+			</span>
+			<h2>{title}</h2>
+			<p>{text}</p>
+			{action && (
+				<button type="button" className="pill primary" onClick={action.go}>
+					{action.label}
+				</button>
+			)}
+		</section>
+	);
+}
+
+function ThermoCard({
+	m,
+	title,
+	intro,
+	pmax,
+	onOpen,
+}: {
+	m: SellerModel;
+	title: string;
+	intro: boolean;
+	pmax: number;
+	onOpen: (id: string) => void;
+}) {
+	const all = [...m.focus, ...m.review];
+	const parts = (["quente", "esfriando", "frio"] as const).map((k) => {
+		const l = all.filter((d) => d.temp === k);
+		return { k, n: l.length, v: l.reduce((a, d) => a + d.price, 0) };
+	});
+	const legend: Record<Temp, string> = {
+		quente: "Quentes",
+		esfriando: "Esfriando",
+		frio: "Frios",
+	};
+	return (
+		<section className={`card thermo-card${intro ? " intro-fade" : ""}`}>
+			<div>
+				<h2>{title}</h2>
+				<p className="sub">
+					{plural(all.length, "negócio em andamento", "negócios em andamento")}{" "}
+					pela idade. Quanto maior o ponto, maior o potencial. Os números marcam
+					os 5 primeiros.
+				</p>
+			</div>
+			<Thermo deals={all} pmax={pmax} intro={intro} onOpen={onOpen} />
+			<div className="th-legend">
+				{parts.map((p) => (
+					<div key={p.k}>
+						<TempTag temp={p.k} label={legend[p.k]} />
+						<span className="v">{usdShort(p.v)}</span>
+						<span className="c">{plural(p.n, "negócio", "negócios")}</span>
+					</div>
+				))}
+			</div>
+			<p className="foot">Valores a preço de lista.</p>
+		</section>
+	);
+}
+
+function greeting(m: SellerModel) {
+	const f = m.focus;
+	if (!f.length) return { lead: "", urg: "" };
+	const n = Math.min(5, f.length);
+	const cool = f.filter(
+		(d) => d.deadline?.kind === "esfria" && d.deadline.days <= 7,
+	).length;
+	const cold = f.filter(
+		(d) => d.deadline?.kind === "parado" && d.deadline.days <= 7,
+	).length;
+	const esf = (k: number) => `${k} ${k === 1 ? "esfria" : "esfriam"}`;
+	const fri = (k: number) => `${k} ${k === 1 ? "fica frio" : "ficam frios"}`;
+	const urg =
+		cool && cold
+			? `${esf(cool)} e ${fri(cold)} nesta semana.`
+			: cool
+				? `${esf(cool)} nesta semana.`
+				: cold
+					? `${fri(cold)} nesta semana.`
+					: "Nenhum esfria nesta semana.";
+	return {
+		lead: n === 1 ? "Comece por este." : `Comece por estes ${n}.`,
+		urg,
+	};
+}
+
+/** Estado vazio da semana: diz o que fazer, na voz de quem está vendo (a pessoa ou o gestor). */
+function emptyWeek(
+	m: SellerModel,
+	fromTeam: boolean,
+	go: (t: Tab) => void,
+): ReactNode {
+	const name = first(m.name);
+	const you = (own: string, other: string) => (fromTeam ? other : own);
+	if (m.empty === "sem-negocios")
+		return (
+			<Empty
+				icon="tray"
+				title="Nada para avançar esta semana."
+				text={you(
+					"Você não tem negócio no CRM. Cadastre os contatos novos para eles aparecerem aqui.",
+					`${name} não tem negócio no CRM. Combine com ${name} quais contatos novos cadastrar.`,
+				)}
+			/>
+		);
+	if (m.empty === "revisar")
+		return (
+			<Empty
+				icon="snowflake"
+				title="Nada para avançar esta semana."
+				text={`${you("Nenhum negócio seu", `Nenhum negócio de ${name}`)} está quente ou esfriando. ${you("Você tem", `${name} tem`)} ${plural(m.review.length, "negócio frio", "negócios frios")}: confirme com o cliente ou dê perda.`}
+				action={{ label: "Ver os frios", go: () => go("perda") }}
+			/>
+		);
+	if (m.empty === "iniciar")
+		return (
+			<Empty
+				icon="tray"
+				title="Nada para avançar esta semana."
+				text="Comece pela prospecção: são os contatos que ainda não viraram negócio."
+				action={{ label: "Ver a prospecção", go: () => go("prospeccao") }}
+			/>
+		);
+	return (
+		<Empty
+			icon="tray"
+			title="Nada em andamento nesta data."
+			text={you(
+				"Cadastre os negócios novos no CRM ou combine com o seu gestor quais empresas abordar.",
+				`Combine com ${name} quais empresas abordar e cadastre os negócios novos no CRM.`,
+			)}
+		/>
 	);
 }
 
 export function SellerView({
-	agent,
-	lists,
-	curve,
-	hasDeals,
-	t,
-	priceOf,
+	day,
+	name,
+	fromTeam,
+	intro,
+	pmax,
+	onBack,
 }: {
-	agent: Agent;
-	lists: AgentLists;
-	curve: readonly BandChance[];
-	hasDeals: boolean;
-	t: number;
-	priceOf: (d: Deal) => number;
+	day: DayModel;
+	name: string;
+	fromTeam: boolean;
+	intro: boolean;
+	pmax: number;
+	onBack?: () => void;
 }) {
-	const [tab, setTab] = useState<Tab>("focus");
-	const [sort, setSort] = useState<{ key: string; desc: boolean } | null>(null);
-	const [picked, setPicked] = useState<string | null>(null);
-	const showAccount = t === REFERENCE_DATE;
+	const m = useMemo(() => sellerModel(day, name), [day, name]);
+	const [tab, setTab] = useState<Tab>("prioridades");
+	const [all, setAll] = useState(false);
+	const [openId, setOpenId] = useState<string | null>(null);
 
-	const base: Record<Tab, Row[]> = {
-		focus: lists.focus.map((s) => ({
-			id: s.deal.id,
-			deal: s.deal,
-			price: s.price,
-			scored: s,
-		})),
-		review: lists.review.map((s) => ({
-			id: s.deal.id,
-			deal: s.deal,
-			price: s.price,
-			scored: s,
-		})),
-		prospect: lists.prospect.map((d) => ({
-			id: d.id,
-			deal: d,
-			price: priceOf(d),
-		})),
-	};
-	const columns = columnsFor(tab, showAccount);
-	const position = new Map(base[tab].map((r, i) => [r.id, i + 1]));
-	const sortCol = columns.find((c) => c.key === sort?.key);
-	const rows =
-		sortCol?.sort && sort
-			? [...base[tab]].sort((a, b) => {
-					const d =
-						(sortCol.sort as (r: Row) => number)(a) -
-						(sortCol.sort as (r: Row) => number)(b);
-					return (
-						(sort.desc ? -d : d) ||
-						(position.get(a.id) ?? 0) - (position.get(b.id) ?? 0)
-					);
-				})
-			: base[tab];
-	const selected = rows.find((r) => r.id === picked) ?? rows[0];
-	const ranks = tab === "focus" ? priceRanks(lists.focus) : undefined;
+	// Troca de data com outro nº 1 (D44): o herói antigo some na hora (ele mostraria dados da
+	// outra data, inclusive a empresa, D34); os cartões mudam de lugar; depois o herói novo aparece.
+	const heroNow = m.focus[0];
+	const [heroId, setHeroId] = useState(heroNow?.id);
+	const [swapped, setSwapped] = useState(false);
+	const waiting = !!heroNow && heroId !== heroNow.id;
+	useEffect(() => {
+		if (!heroNow || heroNow.id === heroId) return;
+		if (reducedMotion() || heroId === undefined) {
+			setHeroId(heroNow.id);
+			return;
+		}
+		const id = setTimeout(() => {
+			setHeroId(heroNow.id);
+			setSwapped(true);
+		}, MOVE_MS);
+		return () => clearTimeout(id);
+	}, [heroNow, heroId]);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: a animação roda a cada troca de data
+	useLayoutEffect(() => {
+		playFlip();
+	}, [day]);
 
-	const go = (next: Tab) => {
-		setTab(next);
-		setSort(null);
-		setPicked(null);
-	};
-
-	const reason = (r: Row) => (
-		<Reason
-			row={r}
-			tab={tab}
-			position={position.get(r.id) ?? 0}
-			listSize={base[tab].length}
-			priceRank={ranks?.get(r.id)}
-			band={r.scored ? bandForAge(curve, r.scored.age) : null}
-			showAccount={showAccount}
-		/>
+	const open = [...m.focus, ...m.review, ...m.prospect].find(
+		(d) => d.id === openId,
 	);
+	const onOpen = useCallback((id: string) => setOpenId(id), []);
+	const close = useCallback(() => setOpenId(null), []);
+	const pickTab = (t: Tab) => {
+		setTab(t);
+		setOpenId(null);
+	};
+	// Setas do teclado entre as abas (padrão de tablist).
+	const onTabKey = (e: KeyboardEvent) => {
+		const i = TABS.findIndex((x) => x.key === tab);
+		const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+		if (!step) return;
+		const next = TABS[(i + step + TABS.length) % TABS.length]?.key ?? tab;
+		pickTab(next);
+		requestAnimationFrame(() =>
+			document.getElementById(`aba-${next}`)?.focus(),
+		);
+	};
 
-	const tabs: { key: Tab; label: string }[] = [
-		{ key: "focus", label: "Foque agora" },
-		{ key: "review", label: "Revisar ou encerrar" },
-		{ key: "prospect", label: "Inicie contato" },
-	];
+	const g = greeting(m);
+	const counts = {
+		prioridades: m.focus.length,
+		perda: m.review.length,
+		prospeccao: m.prospect.length,
+	};
+
+	let body: ReactNode;
+	if (tab === "prioridades") {
+		if (!heroNow) body = emptyWeek(m, fromTeam, pickTab);
+		else {
+			const next = m.focus.slice(1, 5);
+			const rest = m.focus.slice(5);
+			body = (
+				<>
+					<Hero
+						key={heroNow.id}
+						d={heroNow}
+						intro={intro}
+						waiting={waiting}
+						swapped={swapped && !waiting}
+						onSwapDone={() => setSwapped(false)}
+						onOpen={onOpen}
+					/>
+					{next.length > 0 && (
+						<div className="next">
+							{next.map((d, i) => (
+								<MiniCard
+									key={d.id}
+									d={d}
+									i={i}
+									intro={intro}
+									onOpen={onOpen}
+								/>
+							))}
+						</div>
+					)}
+					{rest.length > 0 && (
+						<div className="more">
+							<button
+								type="button"
+								className="pill plain"
+								aria-expanded={all}
+								onClick={() => setAll(!all)}
+							>
+								{all ? "Mostrar menos" : `Ver todos os ${num(m.focus.length)}`}
+								<Icon name="caret-down" />
+							</button>
+						</div>
+					)}
+					{rest.length > 0 && all && (
+						<div className="card list">
+							{rest.map((d) => (
+								<Row key={d.id} d={d} onOpen={onOpen} />
+							))}
+						</div>
+					)}
+				</>
+			);
+		}
+	} else if (tab === "perda") {
+		const total = m.review.reduce((a, d) => a + d.price, 0);
+		body = m.review.length ? (
+			<>
+				<p className="list-intro">
+					<b>
+						{plural(m.review.length, "negócio aberto", "negócios abertos")} há
+						mais de {STALE_AFTER} dias
+					</b>
+					, {usdShort(total)} a preço de lista. Nenhum negócio da base fechou
+					depois disso. Confirme com o cliente ou dê perda, do mais caro para o
+					mais barato.
+				</p>
+				<div className="card list">
+					{m.review.map((d) => (
+						<Row key={d.id} d={d} onOpen={onOpen} />
+					))}
+				</div>
+			</>
+		) : (
+			<Empty
+				icon="check-circle"
+				title="Nada para atualizar."
+				text={`Nenhum negócio passou de ${STALE_AFTER} dias aberto. Continue avançando as prioridades da semana.`}
+			/>
+		);
+	} else {
+		body =
+			day.t !== REFERENCE_DATE ? (
+				<Empty
+					icon="tray"
+					title="Prospecção só na data mais recente."
+					text="O CRM não registra quando cada prospecção começou, então não dá para saber se ela já existia nesta data."
+				/>
+			) : m.prospect.length ? (
+				<>
+					<p className="list-intro">
+						Contatos que ainda não viraram negócio, do maior preço de lista para
+						o menor.
+					</p>
+					<div className="card list">
+						{m.prospect.map((d) => (
+							<Row key={d.id} d={d} onOpen={onOpen} />
+						))}
+					</div>
+				</>
+			) : (
+				<Empty
+					icon="tray"
+					title="Nenhuma prospecção esperando contato."
+					text="Quando um contato novo entrar no CRM, ele aparece aqui, do maior preço para o menor."
+				/>
+			);
+	}
 
 	return (
 		<>
-			<div className="seller-head">
-				<h2>{agent.name}</h2>
-				<p className="muted">
-					Gestor: {agent.manager}. Regional: {agent.regional}.
+			{fromTeam && (
+				<button type="button" className="back" onClick={onBack}>
+					<Icon name="caret-left" />
+					Minha equipe
+				</button>
+			)}
+			<div className="top">
+				<p className="greet">
+					{fromTeam
+						? `A semana de ${first(m.name)}.`
+						: `Bom dia, ${first(m.name)}.`}{" "}
+					{g.lead && <b>{g.lead}</b>} {g.urg}
 				</p>
-				<p className="rule-line">
-					A idade decide a lista e quando o negócio esfria. Dentro da Foque
-					agora, a ordem é pelo valor ponderado: preço de lista vezes a chance
-					histórica para aquela idade.
-				</p>
+				<div
+					className="tabs seg"
+					role="tablist"
+					aria-label="Listas"
+					onKeyDown={onTabKey}
+				>
+					{TABS.map((x) => (
+						<button
+							key={x.key}
+							id={`aba-${x.key}`}
+							type="button"
+							role="tab"
+							aria-selected={tab === x.key}
+							aria-controls="lista"
+							tabIndex={tab === x.key ? 0 : -1}
+							onClick={() => pickTab(x.key)}
+						>
+							<span className="lg-only">{x.label}</span>
+							<span className="sm-only">{x.short}</span>{" "}
+							<span className="n">{num(counts[x.key])}</span>
+						</button>
+					))}
+				</div>
 			</div>
-			<div className="workspace">
-				<section className="panel" aria-label="Listas do vendedor">
-					<div className="tabs" role="tablist">
-						{tabs.map((x) => (
-							<button
-								key={x.key}
-								type="button"
-								role="tab"
-								aria-selected={tab === x.key}
-								onClick={() => go(x.key)}
-							>
-								{x.label}
-								<span className="count">({num(base[x.key].length)})</span>
-							</button>
-						))}
-					</div>
-					{rows.length === 0 ? (
-						<EmptyList
-							tab={tab}
-							kind={emptyFocus(lists, hasDeals)}
-							lists={lists}
-							t={t}
-							go={go}
+			{day.t !== REFERENCE_DATE && (
+				<p className="past-note">
+					Você está vendo a carteira como estava em {date(day.t)}. A empresa e a
+					prospecção ficam ocultas: revelariam o que aconteceu depois.
+				</p>
+			)}
+			<div className="desk">
+				<div
+					className="stack"
+					role="tabpanel"
+					id="lista"
+					aria-labelledby={`aba-${tab}`}
+				>
+					{body}
+				</div>
+				{m.hasDeals && (
+					<div className="side">
+						<ThermoCard
+							m={m}
+							title={`${fromTeam ? `A carteira de ${first(m.name)}` : "Sua carteira"} no tempo`}
+							intro={intro}
+							pmax={pmax}
+							onOpen={onOpen}
 						/>
-					) : (
-						<div className="table-wrap" role="tabpanel">
-							<table>
-								<thead>
-									<tr>
-										{columns.map((c) => (
-											<th
-												key={c.key}
-												className={
-													[c.numeric ? "num" : "", c.wide ? "wide-only" : ""]
-														.join(" ")
-														.trim() || undefined
-												}
-												aria-sort={
-													sort?.key === c.key
-														? sort.desc
-															? "descending"
-															: "ascending"
-														: undefined
-												}
-											>
-												{c.sort ? (
-													<button
-														type="button"
-														aria-pressed={sort?.key === c.key}
-														onClick={() =>
-															setSort(
-																sort?.key === c.key && sort.desc
-																	? { key: c.key, desc: false }
-																	: sort?.key === c.key
-																		? null
-																		: { key: c.key, desc: true },
-															)
-														}
-													>
-														{c.label}
-													</button>
-												) : (
-													c.label
-												)}
-											</th>
-										))}
-									</tr>
-								</thead>
-								<tbody>
-									{rows.map((r) => (
-										<Fragment key={r.id}>
-											<tr
-												aria-selected={selected?.id === r.id}
-												onClick={() => setPicked(r.id)}
-											>
-												{columns.map((c) => (
-													<td
-														key={c.key}
-														className={
-															[
-																c.numeric ? "num" : "",
-																c.wide ? "wide-only" : "",
-																c.key === "deal" ? "deal-cell" : "",
-															]
-																.join(" ")
-																.trim() || undefined
-														}
-													>
-														{c.key === "deal" ? (
-															<button
-																type="button"
-																className="row-button"
-																aria-expanded={selected?.id === r.id}
-																onClick={(e) => {
-																	e.stopPropagation();
-																	setPicked(r.id);
-																}}
-															>
-																{c.cell(r, position.get(r.id) ?? 0)}
-															</button>
-														) : (
-															c.cell(r, position.get(r.id) ?? 0)
-														)}
-													</td>
-												))}
-											</tr>
-											{selected?.id === r.id && (
-												<tr className="detail-row">
-													<td colSpan={columns.length}>
-														<div className="reason">{reason(r)}</div>
-													</td>
-												</tr>
-											)}
-										</Fragment>
-									))}
-								</tbody>
-							</table>
-						</div>
-					)}
-				</section>
-				{selected && (
-					<aside className="panel reason" aria-label="Motivo da posição">
-						{reason(selected)}
-					</aside>
+					</div>
 				)}
 			</div>
+			<Sheet open={!!open} onClose={close} label="Detalhe do negócio">
+				{open && (
+					<DealPanel
+						key={open.id}
+						d={open}
+						day={day}
+						whose={fromTeam ? `semana de ${first(m.name)}` : "sua semana"}
+					/>
+				)}
+			</Sheet>
 		</>
-	);
-}
-
-function EmptyList({
-	tab,
-	kind,
-	lists,
-	t,
-	go,
-}: {
-	tab: Tab;
-	kind: ReturnType<typeof emptyFocus>;
-	lists: AgentLists;
-	t: number;
-	go: (tab: Tab) => void;
-}) {
-	if (tab === "prospect")
-		return (
-			<div className="empty">
-				<h3>Nenhuma prospecção para mostrar</h3>
-				<p>
-					{t === REFERENCE_DATE
-						? "Este vendedor não tem negócios em prospecção."
-						: `A prospecção só aparece na data mais recente (31/12/2017). A base não registra quando cada prospecção começou, então não dá para saber quais já existiam em ${date(t)}.`}
-				</p>
-			</div>
-		);
-	if (tab === "review")
-		return (
-			<div className="empty">
-				<h3>Nenhum negócio parado</h3>
-				<p>Nada aqui passou de 138 dias em andamento.</p>
-			</div>
-		);
-	if (kind === "sem-negocios")
-		return (
-			<div className="empty">
-				<h3>A base não tem nenhum negócio deste vendedor</h3>
-				<p>Cadastre os negócios no CRM para que apareçam aqui.</p>
-			</div>
-		);
-	if (kind === "nada-aberto")
-		return (
-			<div className="empty">
-				<h3>Nenhum negócio em andamento em {date(t)}</h3>
-				<p>
-					Cadastre novos negócios ou combine com seu gestor quais contas
-					abordar.
-				</p>
-			</div>
-		);
-	return (
-		<div className="empty">
-			<h3>Nenhum negócio recente em {date(t)}</h3>
-			<p>
-				{lists.review.length > 0 &&
-					`${num(lists.review.length)} ${lists.review.length === 1 ? "negócio está parado" : "negócios estão parados"} há mais de 138 dias. `}
-				{lists.prospect.length > 0 &&
-					`${num(lists.prospect.length)} ${lists.prospect.length === 1 ? "negócio está" : "negócios estão"} em prospecção, sem contato. `}
-				Comece por eles.
-			</p>
-			<div className="actions">
-				{lists.review.length > 0 && (
-					<button type="button" className="action" onClick={() => go("review")}>
-						Ver Revisar ou encerrar
-					</button>
-				)}
-				{lists.prospect.length > 0 && (
-					<button
-						type="button"
-						className={lists.review.length > 0 ? "action secondary" : "action"}
-						onClick={() => go("prospect")}
-					>
-						Ver Inicie contato
-					</button>
-				)}
-			</div>
-		</div>
 	);
 }
