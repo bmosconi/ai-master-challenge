@@ -121,6 +121,8 @@ Os scripts Python de referência são opcionais; as instruções estão em `subm
 
 **URL:** https://ai-master-challenge-solution-bruno.vercel.app
 
+A Vercel compila com o Node 24.x. O build publicado é idêntico ao do Node 22: os dois geram o mesmo nome de arquivo (`index-*.js`).
+
 ### Recomendações
 
 1. **Segunda de manhã, cada vendedor começa pelos 5 primeiros da semana.** Na validação, os 10 primeiros da lista trouxeram 41% do que a carteira vendeu nos três meses seguintes.
@@ -211,7 +213,7 @@ Antes desta etapa, houve uma preparação com o Claude (Cowork) como assistente.
 5. **Telas na direção aprovada e o "Como funciona".** Ao fim de cada incremento, o `revisor` e o `testador-de-uso` rodaram, e cada achado grave foi reproduzido antes de ser corrigido.
 6. **Escala e deploy.** Bench, segundo adaptador de dados, conferência dos documentos contra a auditoria e varredura de dados pessoais antes de publicar.
 
-As decisões estão em `process-log/decisoes.md` (D1 a D58), com quem decidiu e a evidência.
+As decisões estão em `process-log/decisoes.md` (D1 a D59), com quem decidiu e a evidência.
 
 ### Onde a IA errou e como corrigi
 
@@ -228,7 +230,7 @@ São 34 erros registrados em `process-log/erros-da-ia.md`: 9 da preparação e 2
 A IA escreveu quase todo o código e os textos. O meu papel foi decidir o que estava bom o suficiente, e várias vezes dizer que não estava.
 
 **Não confiei no que a IA entregou**
-- Antes de qualquer código, exigi que o Claude Code revisasse todo o material de partida e recalculasse cada número sem olhar os scripts antigos (D16). A revisão achou 9 erros da preparação, entre eles uma base cortada no início que inflava a chance de fechar.
+- Antes de qualquer código, exigi que o Claude Code revisasse todo o material de partida e recalculasse cada número sem olhar os scripts antigos (D16). A revisão achou 9 erros da preparação, entre eles um viés de sobrevivência que inflava a chance.
 - Usei o app publicado como um vendedor usaria. Ao notar que os primeiros nomes da lista não tinham score, a investigação mostrou que a regional Central concentra os 500 negócios em prospecção e quase não tem negócio ativo. O que parecia defeito virou recomendação para a Head de RevOps (D53 a D55).
 
 **Mantive o foco em quem vai usar**

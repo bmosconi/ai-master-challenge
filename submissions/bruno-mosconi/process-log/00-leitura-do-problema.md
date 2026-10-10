@@ -1,6 +1,6 @@
 # Minha leitura do problema
 
-_Bruno Mosconi, 09/10/2026. Escrito antes dos resultados da revisão inicial. Com auxílio do Claude. Os números citados vêm do material de partida e ainda não foram conferidos._
+_Bruno Mosconi, 09/10/2026. Escrito antes dos resultados da revisão inicial. Os números citados vêm do material de partida e ainda não foram conferidos._
 
 **O problema de verdade.** A Head de RevOps não pediu um modelo. Ela pediu que 35 vendedores parem de priorizar "no feeling". Não falta dado; o que se perde é atenção. O vendedor gasta a segunda de manhã em negócios que já morreram e deixa esfriar os que ainda têm chance.
 

@@ -17,6 +17,8 @@ __pycache__/
 .vercel/
 .env
 .env.*
+*.pem
+*.key
 # Configuração de MCP: pode conter chave de API (Krea)
 .mcp.json
 # Termos privados da limpeza dos exports (tools/limpar-exports.mjs)
