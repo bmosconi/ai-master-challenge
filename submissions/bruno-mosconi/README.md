@@ -35,7 +35,7 @@ O app em uso (prints em `process-log/screenshots/03-app/`, em 1280 e 390 px, cla
 |---|---|---|
 | Minha semana (Zane Levy, 31/12/2017) | O nº 1 é o GTX Plus Pro da The New York Inquirer, aberto há 21 dias: US$ 5.482 × 47% = US$ 2.577 de potencial, score 98. Motivo: "De cada 100 negócios iniciados, 47 fecharam venda." | `02-vendedor-1280-claro.webp`, `03-painel-1280-claro.webp` |
 | Minha semana (Anna Snelling) | O único negócio dela com prazo tem score 0. O herói passa a ser a prospecção: 55 negócios em prospecção para iniciar contato (US$ 77.845 a preço de lista) | `11-heroi-acao-1280-claro.webp` |
-| Minha equipe (Summer Sewald) | "US$ 718 mil frios na equipe. Kary concentra US$ 229 mil." | `06-gestor-1280-claro.webp` |
+| Minha equipe (Summer Sewald) | "US$ 718 mil frios na equipe. Kary concentra US$ 229 mil." O seletor "Ver a equipe de" mostra qualquer uma das 6 equipes, agrupadas por regional | `06-gestor-1280-claro.webp` |
 | Como funciona | A regra numa tela, as três provas e as limitações | `09-como-funciona-1280-claro.webp` |
 
 **O que os dados mostraram** (detalhes em `docs/analise-exploratoria.md`):
@@ -174,7 +174,7 @@ Antes desta etapa, houve uma preparação com o Claude (Cowork) como assistente.
 5. **Telas na direção aprovada e o "Como funciona".** Ao fim de cada incremento, o `revisor` e o `testador-de-uso` rodaram, e cada achado grave foi reproduzido antes de ser corrigido.
 6. **Escala e deploy.** Bench, segundo adaptador de dados, conferência dos documentos contra a auditoria e varredura de dados pessoais antes de publicar.
 
-As decisões estão em `process-log/decisoes.md` (D1 a D55), com quem decidiu e a evidência.
+As decisões estão em `process-log/decisoes.md` (D1 a D57), com quem decidiu e a evidência.
 
 ### Onde a IA errou e como corrigi
 

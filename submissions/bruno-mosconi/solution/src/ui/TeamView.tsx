@@ -10,6 +10,7 @@ import {
 	actionInfo,
 	type DayModel,
 	heroAction,
+	MANAGERS,
 	sellerModel,
 	teamModel,
 } from "./model.ts";
@@ -98,12 +99,16 @@ export function TeamView({
 	viewerIsManager,
 	pmax,
 	onOpen,
+	onPickTeam,
+	ownTeam,
 }: {
 	day: DayModel;
 	manager: string;
 	viewerIsManager: boolean;
 	pmax: number;
 	onOpen: (seller: string) => void;
+	onPickTeam: (manager: string) => void;
+	ownTeam: string;
 }) {
 	const status = useMemo(() => teamModel(day, manager), [day, manager]);
 	const models = useMemo(
@@ -136,6 +141,34 @@ export function TeamView({
 	return (
 		<>
 			<section className="team-head">
+				{/* D57: qualquer equipe, sem voltar à entrada (filtro por regional e gestor) */}
+				<div className="team-pick">
+					<label htmlFor="ver-equipe">Ver a equipe de</label>
+					<select
+						id="ver-equipe"
+						value={manager}
+						onChange={(e) => onPickTeam(e.target.value)}
+					>
+						{[...new Set(MANAGERS.map((m) => m.regional))].sort().map((r) => (
+							<optgroup key={r} label={`Regional ${r}`}>
+								{MANAGERS.filter((m) => m.regional === r).map((m) => (
+									<option key={m.name} value={m.name}>
+										{m.name}, {m.regional}
+									</option>
+								))}
+							</optgroup>
+						))}
+					</select>
+					{ownTeam && manager !== ownTeam && (
+						<button
+							type="button"
+							className="inline-link"
+							onClick={() => onPickTeam(ownTeam)}
+						>
+							Voltar à minha equipe
+						</button>
+					)}
+				</div>
 				<p className="greet">
 					{viewerIsManager
 						? `Bom dia, ${first(manager)}.`

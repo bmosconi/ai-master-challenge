@@ -124,6 +124,33 @@ for (const scheme of ["light", "dark"] as const)
 				});
 			});
 
+			test("Head de RevOps: ver outra equipe pelo seletor (D57)", async ({
+				page,
+			}) => {
+				await page.goto("/");
+				await page
+					.getByRole("button", { name: /^\S+ Summer Sewald/ })
+					.first()
+					.click();
+				const pick = page.getByLabel("Ver a equipe de");
+				await expect(pick).toBeVisible();
+				const t0 = Date.now();
+				await pick.selectOption("Dustin Brinkmann");
+				const lead = page.locator(".lead-h1");
+				await expect(lead).toContainText("US$ 282 mil");
+				rows.push({
+					persona: "RevOps",
+					tela: tag,
+					pergunta: "ver a equipe da Central pelo seletor",
+					ms: Date.now() - t0,
+					cliques: 1,
+					semRolar: await inView(pick),
+					resposta: `${await page.locator(".greet").textContent()} ${await lead.textContent()}`,
+				});
+				await settle(page);
+				await page.screenshot({ path: `${OUT}/revops-equipe-${tag}.png` });
+			});
+
 			test("Head de RevOps: como o score funciona", async ({ page }) => {
 				await page.goto("/");
 				await page

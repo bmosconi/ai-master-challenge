@@ -56,7 +56,7 @@ Pelos commits da branch `submission/bruno-mosconi` (datas de 09 e 10/10/2026), n
 | `5534e37`, `195823f` | Documentação | README no template; exports das sessões, limpos (D52) |
 | `8cfa186` | Correções do site publicado | Entrada, Central, herói de ação e acabamento (D53 a D55) |
 | `ef7a82f`, `6c71128` | Publicação | URL no README; caminho certo depois de clonar (teste de clone limpo) |
-| `134894a` e seguintes | Fechamento | Lint sem avisos; achados da banca simulada (D56) |
+| `134894a` e seguintes | Fechamento | Lint sem avisos; achados da banca simulada (D56); seletor de equipe e tabela da prova 1 (D57) |
 
 ## Iterações
 
@@ -78,5 +78,5 @@ Contadas nos commits, nos exports e nos arquivos desta pasta:
   - plano do incremento 4: `critico`;
   - incrementos 4 e 5: `revisor` e `testador-de-uso`, 1 rodada cada;
   - site publicado: `testador-de-uso` contra a URL e banca simulada (`critico`), 1 rodada cada.
-- **Decisões registradas:** D1 a D56, em `decisoes.md`.
+- **Decisões registradas:** D1 a D57, em `decisoes.md`.
 - **Erros registrados:** 34, em `erros-da-ia.md`. São 9 da preparação, encontrados na revisão inicial, e 25 desta etapa, todos corrigidos ou com o motivo de não corrigir.

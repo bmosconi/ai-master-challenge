@@ -232,6 +232,31 @@ export function HowView({ day }: { day: DayModel }) {
 					))}
 				</div>
 				<p className="pair-axis">Idade do negócio, em dias</p>
+				<table className="by-date pair-table">
+					<caption>
+						Os números do gráfico: de cada 100, quantos fecharam venda
+					</caption>
+					<thead>
+						<tr>
+							<th scope="col">Idade</th>
+							<th scope="col" className="r">
+								Todos os negócios
+							</th>
+							<th scope="col" className="r">
+								Só os já ganhos ou perdidos
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						{bands.map((b) => (
+							<tr key={b.age}>
+								<th scope="row">{b.age}</th>
+								<td className="r">{b.v}</td>
+								<td className="r">{b.wrong}</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
 				<div className="callout">
 					<h4>O engano evitado</h4>
 					<p>

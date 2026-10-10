@@ -142,6 +142,7 @@ export function App() {
 	const [area, setArea] = useState<Area>(() => areaFor(loadPerson()));
 	const [t, setT] = useState(REFERENCE_DATE);
 	const [seller, setSeller] = useState<string | null>(null); // gestor abriu a semana de alguém
+	const [otherTeam, setOtherTeam] = useState<string | null>(null); // seletor de equipe (D57)
 	const [intro, setIntro] = useState(false);
 	const day = useMemo(() => dayModel(t), [t]);
 
@@ -193,6 +194,7 @@ export function App() {
 			localStorage.setItem(STORE, JSON.stringify(p));
 		} catch {}
 		setPerson(p);
+		setOtherTeam(null);
 		setSeller(null);
 		setArea(home(p));
 		history.replaceState(null, "", `#${home(p)}`);
@@ -228,8 +230,12 @@ export function App() {
 		page = (
 			<TeamView
 				day={day}
-				manager={manager}
-				viewerIsManager={person?.role === "gestor"}
+				manager={otherTeam ?? manager}
+				viewerIsManager={
+					person?.role === "gestor" && (otherTeam ?? manager) === person.name
+				}
+				onPickTeam={(m) => setOtherTeam(m === manager ? null : m)}
+				ownTeam={manager}
 				pmax={PMAX}
 				onOpen={openSeller}
 			/>

@@ -432,3 +432,54 @@ test('celular: o selo "o exemplo" não quebra no meio', async ({ page }) => {
 	});
 	expect(h).toBe(1);
 });
+
+test("seletor de equipe: qualquer equipe sem voltar à entrada, e de volta à própria (D57)", async ({
+	page,
+}) => {
+	await enter(page, "Summer Sewald");
+	const pick = page.getByLabel("Ver a equipe de");
+	await expect(pick).toHaveValue("Summer Sewald");
+	await pick.selectOption("Dustin Brinkmann");
+	await expect(page.locator(".greet")).toHaveText(
+		"A equipe de Dustin Brinkmann.",
+	);
+	await expect(page.locator(".lead-h1")).toContainText(
+		"US$ 282 mil frios na equipe",
+	);
+	await expect(page.locator(".prospect-note")).toBeVisible();
+	// Abrir um vendedor da outra equipe e voltar mantém a equipe escolhida.
+	await page.getByRole("button", { name: "Abrir a semana de Anna" }).click();
+	await expect(page.locator(".hero")).toContainText("O nº 1 de Anna");
+	await page.getByRole("button", { name: "Minha equipe" }).click();
+	await expect(pick).toHaveValue("Dustin Brinkmann");
+	await expect(pick.locator("option:checked")).toHaveText(
+		"Dustin Brinkmann, Central",
+	);
+	await page.getByRole("button", { name: "Voltar à minha equipe" }).click();
+	await expect(pick).toHaveValue("Summer Sewald");
+	await expect(
+		page.getByRole("button", { name: "Voltar à minha equipe" }),
+	).toHaveCount(0);
+	await pick.selectOption("Dustin Brinkmann");
+	await pick.selectOption("Summer Sewald");
+	await expect(page.locator(".greet")).toHaveText("Bom dia, Summer.");
+	// Um vendedor também vê outras equipes.
+	await enter(page, "Zane Levy");
+	await page.getByRole("link", { name: "Minha equipe" }).first().click();
+	await expect(page.getByLabel("Ver a equipe de")).toHaveValue("Summer Sewald");
+	await page.getByLabel("Ver a equipe de").selectOption("Cara Losch");
+	await expect(page.locator(".greet")).toHaveText("A equipe de Cara Losch.");
+});
+
+test("como funciona: o gráfico da prova 1 tem tabela (CA16)", async ({
+	page,
+}) => {
+	await page.goto("/#como-funciona");
+	const table = page.locator(".pair-table");
+	await expect(
+		table.getByRole("row", { name: /0 a 29 dias 47 63/ }),
+	).toBeVisible();
+	await expect(
+		table.getByRole("row", { name: /120 a 138 dias 9 76/ }),
+	).toBeVisible();
+});
