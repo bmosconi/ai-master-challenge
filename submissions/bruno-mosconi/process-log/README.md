@@ -24,6 +24,7 @@
 |---|---|---|
 | Claude Code (extensão no Cursor) | Opus 5.5 (orquestrador, `critico`, `revisor`), Sonnet 5.5 (`testador-de-uso`) | Revisão inicial, implementação, testes, revisões, testes de uso, deploy |
 | Skills `frontend-design` e `dataviz` (Anthropic) | — | Direção visual da interface, com o briefing do `../CLAUDE.md`; validação da paleta |
+| Claude (Cowork) | — | Consultor do Bruno: formatar os prompts e sugerir caminhos |
 | Krea (MCP) | Nano Banana Pro | As duas imagens do app; prompts em `prototipos/rodada-3/README.md` |
 | Playwright | — | Testes de navegador, prints, vídeos e medição das personas |
 

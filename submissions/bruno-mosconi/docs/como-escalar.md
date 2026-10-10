@@ -79,14 +79,14 @@ Esse script é o que vira portão na seção 4.
 ## 4. Arquitetura alvo (projeto, não implementado)
 
 ```mermaid
-flowchart LR
-  CRM["CRM"] -- "sync incremental + webhooks" --> ING["Ingestão: adaptador Dataset + validação do contrato"]
+flowchart TB
+  CRM["CRM"] -- "sync + webhooks" --> ING["Ingestão + validação"]
   ING --> DB["Banco"]
-  DB -- "lê os negócios" --> JOB["Job diário: mesmo núcleo, em Node"]
-  JOB -- "grava os scores" --> DB
-  CAL["Calibração mensal: curva versionada, backtest como portão"] --> JOB
-  DB --> API["API: SSO, papéis, isolamento por linha"]
-  API <--> APP["App React: o mesmo de hoje"]
+  DB -- "lê negócios" --> JOB["Job diário: mesmo núcleo"]
+  JOB -- "grava scores" --> DB
+  CAL["Calibração mensal"] --> JOB
+  DB --> API["API: SSO e papéis"]
+  API <--> APP["App React de hoje"]
   API --> FILA["Fila"]
   FILA -- "dar perda, próximo passo" --> CRM
 ```

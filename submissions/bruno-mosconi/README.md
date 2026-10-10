@@ -17,6 +17,7 @@
 ## Solução
 
 - **App publicado:** https://ai-master-challenge-solution-bruno.vercel.app
+- **Rodar local:** `cd submissions/bruno-mosconi/solution && npm ci && npm run dev` (Node 22.18+; detalhes em Setup).
 - **Para avaliar em 2 minutos:** na tela "Quem é você?", abra Zane Levy e o negócio nº 1 ("Ver o motivo"); depois Anna Snelling (uma semana que começa pela prospecção); depois Summer Sewald (a visão da gestora); e, por fim, "Como funciona".
 - **Código:** `solution/` (React, Vite e TypeScript, sem servidor; o núcleo da regra fica em `solution/src/core/`, coberto por testes)
 
@@ -154,14 +155,14 @@ A Vercel compila com o Node 24.x. O build publicado é idêntico ao do Node 22: 
 **Arquitetura alvo** (projeto, não implementado)
 
 ```mermaid
-flowchart LR
-  CRM["CRM"] -- "sync incremental + webhooks" --> ING["Ingestão: adaptador Dataset + validação do contrato"]
+flowchart TB
+  CRM["CRM"] -- "sync + webhooks" --> ING["Ingestão + validação"]
   ING --> DB["Banco"]
-  DB -- "lê os negócios" --> JOB["Job diário: mesmo núcleo, em Node"]
-  JOB -- "grava os scores" --> DB
-  CAL["Calibração mensal: curva versionada, backtest como portão"] --> JOB
-  DB --> API["API: SSO, papéis, isolamento por linha"]
-  API <--> APP["App React: o mesmo de hoje"]
+  DB -- "lê negócios" --> JOB["Job diário: mesmo núcleo"]
+  JOB -- "grava scores" --> DB
+  CAL["Calibração mensal"] --> JOB
+  DB --> API["API: SSO e papéis"]
+  API <--> APP["App React de hoje"]
   API --> FILA["Fila"]
   FILA -- "dar perda, próximo passo" --> CRM
 ```
@@ -199,6 +200,7 @@ O detalhamento está em `process-log/` (comece pelo `README.md` da pasta).
 | Agentes do Claude Code: `critico` e `revisor` (Opus 5.5), `testador-de-uso` (Sonnet 5.5) | Crítica do plano e da regra; revisão de código, segurança e números; testes de uso com três personas |
 | Skills `frontend-design` e `dataviz` | Direção visual; validação da paleta para daltonismo e contraste |
 | Skill `mattpocock-skills:handoff` | Passagem de contexto entre a primeira e a segunda sessão |
+| Claude (Cowork) | Consultor do Bruno: formatar os prompts e sugerir caminhos |
 | Krea (MCP, modelo Nano Banana Pro) | As duas imagens do app (entrada e "Como funciona") |
 | Playwright | Testes de navegador, prints, vídeos e medição das personas |
 
