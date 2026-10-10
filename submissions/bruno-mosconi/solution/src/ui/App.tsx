@@ -113,7 +113,7 @@ function Dates({ t, onPick }: { t: number; onPick: (t: number) => void }) {
 						title={
 							d.available
 								? undefined
-								: "Histórico insuficiente nesta data: a margem de erro passa de 5 pontos"
+								: "Data bloqueada: até esse dia, poucos negócios tinham terminado, e a chance de fechar ainda não era confiável"
 						}
 						onClick={() => onPick(d.t)}
 					>
