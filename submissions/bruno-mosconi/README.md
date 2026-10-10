@@ -44,6 +44,7 @@ O app em uso (prints em `process-log/screenshots/03-app/`, em 1280 e 390 px, cla
 - O vendedor muda quanto do funil fica parado: de 0% a 31% dos negócios iniciados há mais de 138 dias ainda estão abertos, conforme o vendedor. Isso aparece na tela do gestor, como retrato da carteira e não como ranking: os dados não separam vendedor, carteira e região.
 
 **Checagens:**
+- Distribuição em 31/12/2017, conferida na auditoria: 110 negócios quentes, 188 esfriando, 1.291 frios e 500 em prospecção, somando os 2.089 em andamento; nenhum concluído depois de 138 dias.
 - `npm run check`: tipos, lint e 82 testes. Os testes conferem os números contra a análise em Python e as funções estatísticas contra o scipy.
 - `npm run e2e`: 21 testes no navegador, inclusive o de que nenhuma requisição sai do próprio site.
 - `npm run auditoria`: recalcula todos os números citados nos documentos.
