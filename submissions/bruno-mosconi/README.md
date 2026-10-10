@@ -154,6 +154,7 @@ O detalhamento está em `process-log/` (comece pelo `README.md` da pasta).
 | Claude Code (Opus 5.5) | Orquestrador: revisão inicial, recálculo independente, implementação, testes e documentos |
 | Agentes do Claude Code: `critico` e `revisor` (Opus 5.5), `testador-de-uso` (Sonnet 5.5) | Crítica do plano e da regra; revisão de código, segurança e números; testes de uso com três personas |
 | Skills `frontend-design` e `dataviz` | Direção visual; validação da paleta para daltonismo e contraste |
+| Skill `mattpocock-skills:handoff` | Passagem de contexto entre a primeira e a segunda sessão |
 | Krea (MCP, modelo Nano Banana Pro) | As duas imagens do app (entrada e "Como funciona") |
 | Playwright | Testes de navegador, prints, vídeos e medição das personas |
 
@@ -190,7 +191,7 @@ São 30 erros registrados em `process-log/erros-da-ia.md`: 9 da preparação e 2
 
 - [x] Screenshots: `process-log/screenshots/` (app) e `process-log/prototipos/` (as três rodadas)
 - [x] Screen recording: vídeos dos movimentos em `process-log/screenshots/03-app/` e `process-log/prototipos/`
-- [ ] Chat exports: `process-log/chat-exports/` [[depois da sua revisão dos exports]]
+- [x] Chat exports: `process-log/chat-exports/` (limpos com `tools/limpar-exports.mjs`)
 - [x] Git history: um commit por etapa, com as decisões no corpo
 - [x] Outro: auditoria reproduzível (`npm run auditoria`), revisões dos agentes (`process-log/revisoes-incremento-4.md` e `-5.md`) e scripts de análise (`solution/analysis/`)
 

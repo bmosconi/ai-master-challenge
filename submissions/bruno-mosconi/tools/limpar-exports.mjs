@@ -8,6 +8,8 @@
 // originais (para conferir com `diff -u original limpo` antes).
 //
 // Substitui:
+//   - o conteúdo mostrado de um arquivo de configuração pessoal do Claude Code (~/.claude/settings*.json,
+//     ~/.claude.json): a linha da ferramenta fica, o bloco abaixo dela vira [configuração pessoal removida]
 //   - caminhos temporários do Claude (/private/tmp/claude-N/..., com o ID da sessão) → [removido]
 //   - a pasta do ai-memory → [removido]
 //   - IDs de sessão (UUID) → [removido]
@@ -64,6 +66,11 @@ const home = `(?:/Users/${wrapped(user)}|~)`;
 
 const RULES = [
 	[
+		"configuração pessoal",
+		/(⏺ \w+\((?:~|\/Users\/[^/\s)]+)\/\.claude(?:\/settings[\w.-]*\.json|\.json)\)\n)(?! {2}⎿ {2}\[configuração pessoal removida\])(?:[^\n]+\n)+/g,
+		(m, header) => `${header}  ⎿  [configuração pessoal removida]\n`,
+	],
+	[
 		"caminho temporário do Claude",
 		new RegExp(String.raw`/private/tmp/claude-\d+/(?:[A-Za-z0-9._/-]|\n[ ]{2,8}(?=[A-Za-z0-9._/-]))+`, "g"),
 		R,
@@ -98,7 +105,7 @@ for (const file of files) {
 	for (const [name, re, to] of RULES)
 		text = text.replace(re, (...m) => {
 			counts[name] = (counts[name] ?? 0) + 1;
-			return typeof to === "function" ? to(m[0]) : to;
+			return typeof to === "function" ? to(...m) : to;
 		});
 	writeFileSync(out ? join(out, basename(file)) : file, text);
 	console.log(`\n${basename(file)}`);

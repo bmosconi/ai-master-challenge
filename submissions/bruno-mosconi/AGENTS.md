@@ -288,7 +288,7 @@ Todo o material desta pasta foi produzido antes, numa preparação com o Claude 
 | `01-revisao-inicial.md` | Revisão completa feita pelo Claude Code (seção 8) | Claude Code |
 | `decisoes.md` | Decisões de partida e decisões tomadas durante a construção | — |
 | `erros-da-ia.md` | Erro, quem percebeu, correção, evidência | — |
-| `screenshots/` | Prints reais: `01-setup/` e `02-app/` | — |
+| `screenshots/` | Prints reais do app: `02-app/` (primeira versão) e `03-app/` (versão final) | — |
 | `chat-exports/` | Exports reais das sessões (`/export`) | O Bruno revisa dados pessoais e corporativos antes de versionar |
 
 O histórico do git é evidência. Nunca reescreva histórico para parecer outro processo.

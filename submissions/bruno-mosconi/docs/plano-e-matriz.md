@@ -113,4 +113,4 @@ Já aplicado: o seletor de data oferece só 31/12/2017 e as 4 datas do backtest 
 | Modelo real dos agentes | acionar o `critico` com um plano curto; depois procurar `"model"` no transcript do subagente em `~/.claude/projects/` | `claude-opus-5-5` |
 | MCP | `/mcp` | desligar neste projeto os servidores que não servem ao desafio |
 
-Tire print de cada check e salve em `process-log/screenshots/01-setup/`.
+A configuração aparece nos exports das sessões (`process-log/chat-exports/`) e nos testes do hook (`node --test .claude/hooks/guard-pasta.test.mjs`); não há prints desta etapa.

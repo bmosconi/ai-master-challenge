@@ -26,7 +26,7 @@
 | `erros-da-ia.md` | Erros da IA (da preparação e desta etapa): quem percebeu e como foi corrigido |
 | `revisoes-incremento-4.md`, `revisoes-incremento-5.md` | Achados do `revisor` e do `testador-de-uso`, o que foi reproduzido e o que foi feito, com as medições das personas |
 | `prototipos/` | As três rodadas de protótipo, com prints, vídeos e os prompts das imagens |
-| `screenshots/` | Prints reais: `01-setup/` (configuração), `02-app/` (primeira versão, reprovada no portão visual) e `03-app/` (versão final, em 1280 e 390 px, claro e escuro, com vídeos) |
+| `screenshots/` | Prints reais: `02-app/` (primeira versão, reprovada no portão visual) e `03-app/` (versão final, em 1280 e 390 px, claro e escuro, com vídeos) |
 | `chat-exports/` | Exports das sessões do Claude Code (`/export`) |
 
 ## Linha do tempo
