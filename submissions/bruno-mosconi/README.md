@@ -3,7 +3,7 @@
 ## Sobre mim
 
 - **Nome:** Bruno Mosconi
-- **LinkedIn:** [[PREENCHER]]
+- **LinkedIn:** https://www.linkedin.com/in/bruno-mosconi
 - **Challenge escolhido:** 003 — Lead Scorer
 
 ---
@@ -138,13 +138,50 @@ Os scripts Python de referência são opcionais; as instruções estão em `subm
 - **Só leitura.** O vendedor não registra "dei perda" no app; faz isso no CRM. Não há login: a escolha da pessoa fica salva no aparelho.
 - **Uma foto fixa do CRM**, de 31/12/2017, com 3 datas passadas para comparação (31/07, 31/08 e 30/09/2017; a de 30/06 fica bloqueada por falta de histórico).
 
-**Como escalar** (detalhe em `docs/como-escalar.md`):
-- O núcleo é puro, roda igual no navegador e no Node, e recebe os dados por um contrato (`Dataset`). Dois adaptadores, um de CSV e um de JSON no formato de uma API de CRM, dão o mesmo resultado (teste).
-- Com os dados multiplicados por 100 (880 mil negócios), a tela calcula em 143 ms no navegador e o cálculo das listas dos 35 vendedores leva 616 ms (`npm run bench`). O que pesa primeiro é baixar a foto (16,6 MB com gzip), não o cálculo.
-- O caminho tem três fases:
-  1. uma foto diária do CRM, com o mesmo app;
-  2. banco, job diário, API e permissões por papel;
-  3. data warehouse, validação mensal automática e alerta quando a curva mudar.
+#### Como escalar (detalhe técnico em `docs/como-escalar.md`)
+
+**O que já está provado**
+- O cálculo não é o gargalo. Com os dados multiplicados por 100 (880 mil negócios), a semana de um vendedor é calculada em 143 ms no navegador, e as listas dos 35 vendedores em 616 ms (`npm run bench`). Os tempos não incluem baixar os dados.
+- O núcleo é puro (sem rede e sem estado) e recebe os dados por um contrato (`Dataset`). Ele roda igual no navegador e no Node. Um adaptador de CSV e outro no formato de uma API de CRM dão o mesmo resultado (`adapters.test.ts`).
+
+**O que muda quando muitas pessoas usam**
+- O custo cresce com o número de negócios, não com o de pessoas: cada pessoa só lê a própria lista. O desenho é calcular em lote e servir leituras pequenas e já prontas.
+- O score muda com o passar dos dias, mesmo sem ninguém mexer no CRM: a chance é recalculada a cada data e cai quando o negócio passa de uma faixa de idade para a outra. E o score é a posição do potencial entre todos os negócios quentes e esfriando da empresa, então um negócio não pode ser calculado isolado. As duas coisas pedem um job diário, e não um cálculo a cada pedido.
+- O limite de hoje é privacidade, não desempenho: o navegador recebe a base inteira. Na plataforma, cada pessoa recebe só o que tem permissão para ver.
+
+**Arquitetura alvo** (projeto, não implementado)
+
+```mermaid
+flowchart LR
+  CRM["CRM"] -- "sync incremental + webhooks" --> ING["Ingestão: adaptador Dataset + validação do contrato"]
+  ING --> DB["Banco"]
+  DB -- "lê os negócios" --> JOB["Job diário: mesmo núcleo, em Node"]
+  JOB -- "grava os scores" --> DB
+  CAL["Calibração mensal: curva versionada, backtest como portão"] --> JOB
+  DB --> API["API: SSO, papéis, isolamento por linha"]
+  API <--> APP["App React: o mesmo de hoje"]
+  API --> FILA["Fila"]
+  FILA -- "dar perda, próximo passo" --> CRM
+```
+
+- **Ingestão:** sincronização incremental com o CRM. O adaptador atual vira a porta de entrada, e o contrato é validado a cada lote.
+- **Cálculo:** o mesmo núcleo roda num job diário em Node e grava score, estado, motivo, data e versão da curva. Mudanças durante o dia recalculam só o negócio afetado, usando os cortes de percentil gravados pelo lote.
+- **Calibração:** um job mensal recalcula a chance pela idade, por empresa. A curva nova só é publicada se ganhar da atual no backtest.
+- **Acesso:** login único da empresa (SSO), papéis (vendedor, gestor, RevOps) e isolamento por linha no banco.
+- **Ações:** "dar perda" e "próximo passo" voltam para o CRM por uma fila, com nova tentativa e registro. O CRM continua sendo a fonte da verdade.
+- **Operação:** a lista fica pronta antes do expediente. Se o job falhar, o app mostra a lista anterior, com a data dela.
+
+**Três fases, com o gatilho para mudar de uma para outra**
+
+| Fase | Quando | O que entra |
+|---|---|---|
+| 1. Foto diária | Um time piloto, até cerca de 250 mil negócios (arquivo de até ~5 MB com gzip) | Exportação diária do CRM; o mesmo app, com acesso restrito |
+| 2. Serviço | Mais de um time, ou quando cada pessoa só pode ver a própria carteira | Banco, job diário, API com SSO e papéis, ações gravadas de volta no CRM |
+| 3. Plataforma | Várias empresas ou unidades, ou quando o comportamento das vendas mudar | Isolamento por empresa, calibração mensal com portão, monitor de calibração, medição de impacto com grupo de controle |
+
+**O que não muda em nenhuma fase:** a regra (preço de lista × chance pela idade), a frase de motivo com o mesmo número da conta e o backtest como portão. Nenhuma mudança de regra entra sem ganhar da atual no teste com o passado.
+
+**O que melhoraria o score com mais dados:** registrar atividades (último contato, próxima ação) e o motivo de perda. Hoje a idade é o sinal mais forte que os dados têm. Com atividade, dá para testar se um negócio frio está mesmo parado, passando pelo mesmo portão.
 
 ---
 
@@ -174,7 +211,7 @@ Antes desta etapa, houve uma preparação com o Claude (Cowork) como assistente.
 5. **Telas na direção aprovada e o "Como funciona".** Ao fim de cada incremento, o `revisor` e o `testador-de-uso` rodaram, e cada achado grave foi reproduzido antes de ser corrigido.
 6. **Escala e deploy.** Bench, segundo adaptador de dados, conferência dos documentos contra a auditoria e varredura de dados pessoais antes de publicar.
 
-As decisões estão em `process-log/decisoes.md` (D1 a D57), com quem decidiu e a evidência.
+As decisões estão em `process-log/decisoes.md` (D1 a D58), com quem decidiu e a evidência.
 
 ### Onde a IA errou e como corrigi
 
@@ -188,7 +225,26 @@ São 34 erros registrados em `process-log/erros-da-ia.md`: 9 da preparação e 2
 
 ### O que eu adicionei que a IA sozinha não faria
 
-[[PREENCHER]]
+A IA escreveu quase todo o código e os textos. O meu papel foi decidir o que estava bom o suficiente, e várias vezes dizer que não estava.
+
+**Não confiei no que a IA entregou**
+- Antes de qualquer código, exigi que o Claude Code revisasse todo o material de partida e recalculasse cada número sem olhar os scripts antigos (D16). A revisão achou 9 erros da preparação, entre eles uma base cortada no início que inflava a chance de fechar.
+- Usei o app publicado como um vendedor usaria. Ao notar que os primeiros nomes da lista não tinham score, a investigação mostrou que a regional Central concentra os 500 negócios em prospecção e quase não tem negócio ativo. O que parecia defeito virou recomendação para a Head de RevOps (D53 a D55).
+
+**Mantive o foco em quem vai usar**
+- Reprovei a interface duas vezes (D38, D41): a primeira parecia uma planilha, a segunda um painel genérico de IA. Defini a direção: estilo Apple, um protagonista por tela, animação só com propósito.
+- Exigi a língua do vendedor. Nada de "backtest", "coorte" ou "margem de erro" na tela; escolhi quente, esfriando, frio e potencial (D40).
+- Percebi que o score existia, mas ninguém o via. Ele virou um número de 0 a 100, com a conta ao lado (D39).
+
+**Tomei as decisões difíceis**
+- Sem servidor nem banco, mas com escala provada: com 880 mil negócios, a semana de um vendedor é calculada em 143 ms no navegador (D15).
+- Quando a revisão mostrou que a base começava cortada, escolhi o tratamento que se sustentava em três datas, e não em uma (D27).
+- Quando a estatística empatou entre duas formas de ordenar, decidi olhando negócios reais: um GTK 500 de US$ 26 mil esfriando vale mais que um MG Advanced quente. Fiquei com o potencial.
+- Quando o nº 1 de uma vendedora valia US$ 5, troquei o destaque pela ação que mais pesa para ela, a prospecção (D46).
+- Deixei de fora o modelo de machine learning: ele chegou a 43% contra 41% da regra, uma diferença que o acaso explica, e o vendedor não conseguiria entender por que um negócio estava em primeiro.
+
+**Como usei a IA**
+O Claude Code construiu, com três agentes: um crítico, um revisor e um testador de uso. Usei o Claude (Cowork) como consultor, para formatar meus prompts e sugerir caminhos. As sugestões vieram das duas IAs. As escolhas foram minhas e estão registradas com o meu nome em `process-log/decisoes.md`.
 
 ---
 
@@ -202,4 +258,4 @@ São 34 erros registrados em `process-log/erros-da-ia.md`: 9 da preparação e 2
 
 ---
 
-_Submissão enviada em: [[PREENCHER]]_
+_Submissão enviada em: 10/10/2026_
