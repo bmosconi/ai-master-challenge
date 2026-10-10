@@ -12,7 +12,9 @@
 | Ferramenta | Modelo | Para quê |
 |---|---|---|
 | Claude Code (extensão no Cursor) | Opus 5.5 (orquestrador, `critico`, `revisor`), Sonnet 5.5 (`testador-de-uso`) | Revisão inicial, implementação, testes, revisões, testes de uso, deploy |
-| Skill `frontend-design` (Anthropic) | — | Direção visual da interface, com briefing B2B (`../CLAUDE.md`) |
+| Skills `frontend-design` e `dataviz` (Anthropic) | — | Direção visual da interface, com o briefing do `../CLAUDE.md`; validação da paleta |
+| Krea (MCP) | Nano Banana Pro | As duas imagens do app; prompts em `prototipos/rodada-3/README.md` |
+| Playwright | — | Testes de navegador, prints, vídeos e medição das personas |
 
 ## Como ler esta pasta
 
@@ -20,18 +22,48 @@
 |---|---|
 | `01-revisao-inicial.md` | Revisão completa do material de partida, feita pelo Claude Code no primeiro passo |
 | `decisoes.md` | Decisões de partida e decisões tomadas durante a construção |
-| `erros-da-ia.md` | Erros da IA nesta etapa: quem percebeu e como foi corrigido |
-| `screenshots/` | Prints reais: `01-setup/` (configuração) e `02-app/` (app em uso) |
+| `00-leitura-do-problema.md` | A leitura do problema pelo Bruno, escrita antes de ver os resultados da revisão |
+| `erros-da-ia.md` | Erros da IA (da preparação e desta etapa): quem percebeu e como foi corrigido |
+| `revisoes-incremento-4.md`, `revisoes-incremento-5.md` | Achados do `revisor` e do `testador-de-uso`, o que foi reproduzido e o que foi feito, com as medições das personas |
+| `prototipos/` | As três rodadas de protótipo, com prints, vídeos e os prompts das imagens |
+| `screenshots/` | Prints reais: `01-setup/` (configuração), `02-app/` (primeira versão, reprovada no portão visual) e `03-app/` (versão final, em 1280 e 390 px, claro e escuro, com vídeos) |
 | `chat-exports/` | Exports das sessões do Claude Code (`/export`) |
 
 ## Linha do tempo
 
-[[PREENCHER ao final, a partir dos commits e exports: data e o que foi feito em cada incremento]]
+Pelos commits da branch `submission/bruno-mosconi` (datas de 09 e 10/10/2026), na ordem:
+
+| Commit | Etapa | O que foi feito |
+|---|---|---|
+| `0d4f530` | Incremento 0 | Configuração do Claude Code (agentes, hook que bloqueia edições fora da pasta, script seguro de `git add`) e material de partida |
+| `3684997` | Revisão inicial (C1) | Núcleo em TypeScript e recálculo independente de todos os números |
+| `cc7c54d` | Revisão inicial (C2) | Correções dos achados do `critico` e do `revisor` |
+| `a2fb335` | Leitura do problema | O texto do Bruno, escrito antes dos resultados da revisão |
+| `13f16c0`, `cad53e8` | Portão G1 | Decisões do Bruno aplicadas: entrada tardia como regra final, chance como histórico, prazo sem previsão de queda |
+| `6211796` | Incremento 4, primeira versão | Telas do vendedor e do gestor |
+| `e64ec7d` | Portão visual | Primeira versão reprovada; direção de arte, protótipos da rodada 2 e score de 0 a 100 |
+| `0274e4f` | Protótipos, rodada 3 | Aprovada (D44), com o briefing novo |
+| `d4ddece` | Incremento 4 | Interface na direção aprovada |
+| `a8981ae` | Incremento 5 | "Como funciona" com as três provas; herói de ação para score baixo |
+| `81a3ceb`, `6b00278` | Escala e deploy | Bench, segundo adaptador de dados, documentos conferidos contra a auditoria, teste de que o app não faz chamada de rede |
 
 ## Iterações
 
-[[PREENCHER ao final, contando nos commits e exports, sem estimar e sem declarar horas:
-- sessões;
-- incrementos;
-- rodadas de revisão;
-- achados corrigidos.]]
+Contadas nos commits, nos exports e nos arquivos desta pasta:
+
+- **Sessões do Claude Code:** 3 (exports em `chat-exports/`), com uma compactação de contexto na segunda e outra na terceira.
+- **Portões com o Bruno:**
+  - G0: aprovação do plano;
+  - G1: decisões da revisão;
+  - portão visual: reprovado;
+  - rodada 2 de protótipos: reprovada;
+  - rodada 3: aprovada;
+  - incremento 4: aprovado;
+  - incremento 5: aprovado.
+- **Versões da interface:** 4. São a primeira versão do app (reprovada), a rodada 2 de protótipos (reprovada), a rodada 3 (aprovada) e o app final.
+- **Rodadas de revisão dos agentes:**
+  - revisão inicial: `critico` em 2 rodadas sobre o plano e 1 sobre a revisão, e `revisor` em 1;
+  - plano do incremento 4: `critico`;
+  - incrementos 4 e 5: `revisor` e `testador-de-uso`, 1 rodada cada.
+- **Decisões registradas:** D1 a D52, em `decisoes.md`.
+- **Erros registrados:** 30, em `erros-da-ia.md`. São 9 da preparação, encontrados na revisão inicial, e 21 desta etapa, todos corrigidos ou com o motivo de não corrigir.
