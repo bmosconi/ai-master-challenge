@@ -99,10 +99,10 @@ Fonte de todos os números: `npm run auditoria` (`solution/analysis/saidas/audit
 
 ### Setup
 
-Requer o Node 22.18 ou superior.
+Requer o Node 22.18 ou superior. Na raiz do repositório clonado:
 
 ```bash
-cd solution
+cd submissions/bruno-mosconi/solution
 npm ci
 npm run dev          # app em http://localhost:5173
 npm run check        # tipos, lint e testes
@@ -110,10 +110,10 @@ npm run build        # build de produção em dist/
 npx playwright install chromium   # só na primeira vez, para os testes de navegador
 npm run e2e          # testes de navegador no build de produção
 npm run auditoria    # recalcula os números dos documentos
-npm run bench        # mede o núcleo com os dados multiplicados por 100
+npm run bench        # mede o núcleo com os dados multiplicados por 100 (os tempos variam com a máquina)
 ```
 
-Os scripts Python de referência (`solution/analysis/`) são opcionais: `pip install -r solution/analysis/requirements.txt`.
+Os scripts Python de referência são opcionais; as instruções estão em `submissions/bruno-mosconi/solution/analysis/README.md`.
 
 **URL:** https://ai-master-challenge-solution-bruno.vercel.app
 
