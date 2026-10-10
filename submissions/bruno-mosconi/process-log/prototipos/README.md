@@ -1,4 +1,8 @@
-# Protótipos da direção de arte (portão visual do incremento 4, segunda rodada)
+# Protótipos da direção de arte (portão visual do incremento 4)
+
+**Rodada 3 (D41–D43):** protótipo único em `rodada-3/`, com o README próprio. O que segue abaixo é a rodada 2, reprovada na D41.
+
+## Rodada 2
 
 Páginas estáticas com dados reais (Zane Levy e a equipe da Summer Sewald, nas 4 datas com histórico suficiente), feitas para o Bruno escolher a direção antes do código de produção (D38).
 
