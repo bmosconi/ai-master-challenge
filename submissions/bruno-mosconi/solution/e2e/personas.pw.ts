@@ -8,10 +8,11 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 const OUT = "test-results/personas";
 const rows: Record<string, string | number | boolean>[] = [];
 
-// O painel desliza em 280 ms: mede e fotografa depois que ele assenta.
-const settle = (page: Page) => page.waitForTimeout(400);
+// O painel desliza em 280 ms e a primeira abertura leva até 900 ms: mede e fotografa depois
+// que a tela assenta (C-18, C-25).
+const settle = (page: Page, ms = 400) => page.waitForTimeout(ms);
 
-const inView = (page: Page, l: Locator) =>
+const inView = (l: Locator) =>
 	l.evaluate((el) => {
 		const r = el.getBoundingClientRect();
 		return r.top >= 0 && r.bottom <= innerHeight;
@@ -46,9 +47,10 @@ for (const scheme of ["light", "dark"] as const)
 					pergunta: "por onde começar (D46: herói de ação)",
 					ms,
 					cliques: 1,
-					semRolar: await inView(page, hero.locator("h2")),
+					semRolar: await inView(hero.locator("h2")),
 					resposta: (await hero.locator("h2").textContent()) ?? "",
 				});
+				await settle(page, 1000);
 				await page.screenshot({ path: `${OUT}/vendedora-${tag}.png` });
 				// O nº 1 dela tem score 0 (D46): continua em 1º, como cartão.
 				const t1 = Date.now();
@@ -62,7 +64,7 @@ for (const scheme of ["light", "dark"] as const)
 					pergunta: "por que o nº 1 está em primeiro",
 					ms: Date.now() - t1,
 					cliques: 1,
-					semRolar: await inView(page, why),
+					semRolar: await inView(why),
 					resposta: (await why.textContent()) ?? "",
 				});
 				await page.screenshot({ path: `${OUT}/vendedora-motivo-${tag}.png` });
@@ -80,7 +82,7 @@ for (const scheme of ["light", "dark"] as const)
 					pergunta: "o que fazer com os frios",
 					ms: Date.now() - t2,
 					cliques: 1,
-					semRolar: await inView(page, intro),
+					semRolar: await inView(intro),
 					resposta: (await intro.textContent()) ?? "",
 				});
 				await page.screenshot({ path: `${OUT}/vendedora-frios-${tag}.png` });
@@ -103,7 +105,7 @@ for (const scheme of ["light", "dark"] as const)
 					pergunta: "quanto valor está frio",
 					ms: Date.now() - t0,
 					cliques: 1,
-					semRolar: await inView(page, lead),
+					semRolar: await inView(lead),
 					resposta: (await lead.textContent()) ?? "",
 				});
 				const empty = page.locator(".lead-note");
@@ -113,7 +115,7 @@ for (const scheme of ["light", "dark"] as const)
 					pergunta: "qual vendedor tem a lista vazia",
 					ms: 0,
 					cliques: 0,
-					semRolar: await inView(page, empty),
+					semRolar: await inView(empty),
 					resposta: (await empty.textContent()) ?? "",
 				});
 				await page.screenshot({
@@ -143,7 +145,7 @@ for (const scheme of ["light", "dark"] as const)
 					pergunta: "a regra: idade, potencial, score (tabela)",
 					ms: Date.now() - t0,
 					cliques: 1,
-					semRolar: await inView(page, table),
+					semRolar: await inView(table),
 					resposta:
 						(await page.locator(".how-head .lead-sub").textContent()) ?? "",
 				});
@@ -153,7 +155,7 @@ for (const scheme of ["light", "dark"] as const)
 					pergunta: "a regra: o exemplo em três passos",
 					ms: 0,
 					cliques: 0,
-					semRolar: await inView(page, steps),
+					semRolar: await inView(steps),
 					resposta: (await steps.locator("li").last().textContent()) ?? "",
 				});
 				// Leitura: palavras do texto principal (sem "Ver detalhes"), a 200 palavras por minuto.

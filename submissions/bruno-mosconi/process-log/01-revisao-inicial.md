@@ -52,8 +52,8 @@ Afirmações numéricas dos arquivos da seção 8. Cada ID vira uma linha da tab
 | N31 | analise-exploratoria.md:70–74 | dup N05, N07 (68%), N06, N09, N10 |
 | N32 | analise-exploratoria.md:82–85 | 44,4 · 36,2 · 15,4 · 45,0% (mistura dois backtests, ver P4) |
 | N33 | analise-exploratoria.md:87 | dup N18 |
-| N34 | como-escalar.md:22, 33 | 8.800; 880 mil = 100×; `[[medir]]` |
-| N35 | como-escalar.md:55 | três `[[medir]]` (preenchidos no incremento do bench) |
+| N34 | como-escalar.md:22, 33 | 8.800; 880 mil = 100×; marcador `medir` |
+| N35 | como-escalar.md:55 | três marcadores `medir` (preenchidos no incremento do bench) |
 | N36 | como-escalar.md:89 | ganho de 0,4 p.p. (dup N18) |
 | N37 | como-escalar.md:105 | 68% dos abertos sem empresa (dup N07) |
 | N38 | README.md:15 | 1.589; US$ 3,9 mi; ≈ US$ 195 mil; 82%; 138 dias (dup) |
@@ -432,7 +432,7 @@ Pela regra fixada antes de rodar (IC sem o zero e ganho de pelo menos 2 p.p.), o
 | N17 | chance só com concluídos | AGENTS:228 | 32,23% | 38,08% | 32,23% | confere após R3 | — |
 | N18, N33, N36 | ML × valor ponderado | AGENTS:232; análise:85–87; como-escalar:89 | 45,0 · 44,6 | pendente | 45,03 · 44,65; diferença não significativa (p = 0,74–0,83) | confere | escrever o resultado do teste no lugar de "a revisão verifica" |
 | N32 (P4) | tabela da análise §7 | análise:82–85 | mistura 44,4 (referência) com 45,0 (exploratório) | — | — | **erro de comparação** | separar as duas tabelas, ou comparar o ML com 44,65 |
-| N34, N35 | 880 mil; `[[medir]]` | como-escalar:33, 55 | a medir | — | — | sem número ainda | preencher no incremento do `bench`, ou cortar (D25) |
+| N34, N35 | 880 mil; marcador `medir` | como-escalar:33, 55 | a medir | — | — | sem número ainda | preencher no incremento do `bench`, ou cortar (D25). **Preenchido em 09/10/2026 (D51, `bench.md`)** |
 | N39 | seis métodos | README:26 | 6 | 6 | 6 | confere | — |
 | N40 | "21 consultas"; Python 3.13 | analysis/README:24, 41 | 21; 3.13 | — | 21 (Q01–Q21, mais a Q12b); os scripts reproduzem no 3.12.4 | confere | registrar que reproduz no 3.12.4 |
 | N41 | hook com 10 testes | plano:102 | 10 | 10 aprovados | — | confere | — |

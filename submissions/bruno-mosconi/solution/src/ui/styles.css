@@ -348,9 +348,6 @@ a:hover {
 	font-size: 18px;
 	transition: transform 260ms var(--ease);
 }
-.pill[aria-expanded="true"] .ic {
-	transform: rotate(180deg);
-}
 
 /* Página */
 main {
@@ -694,6 +691,9 @@ main {
 	font-variant-numeric: tabular-nums;
 	text-align: right;
 }
+.th-zone .ic {
+	font-size: 15px;
+}
 .row .sc .ic {
 	font-size: 20px;
 	vertical-align: middle;
@@ -797,9 +797,6 @@ main {
 	letter-spacing: -0.01em;
 	white-space: nowrap;
 }
-.th-zone .ic {
-	font-size: 15px;
-}
 .th-axis {
 	position: absolute;
 	bottom: 0;
@@ -819,11 +816,6 @@ main {
 	transition:
 		transform 280ms var(--ease),
 		opacity 200ms var(--ease);
-}
-.thermo.entering .dot,
-.thermo.entering .dot-label {
-	transition: none;
-	opacity: 0;
 }
 .dot.top {
 	opacity: 1;
@@ -1399,7 +1391,11 @@ button.dot:focus-visible {
 	color: var(--ink-2);
 	padding-top: 0;
 }
-.how tbody tr + tr > * {
+.by-date tbody th {
+	color: var(--ink-2);
+}
+.how tbody tr + tr > td,
+.how tbody tr + tr > th {
 	border-top: 1px solid var(--sep);
 }
 .how .r {
@@ -1614,9 +1610,6 @@ button.dot:focus-visible {
 	text-align: left;
 	font-weight: 600;
 	padding-bottom: 6px;
-}
-.by-date tbody th {
-	color: var(--ink-2);
 }
 
 /* Prova 3: um ponto por grupo, numa régua de 40% a 85% */
@@ -2056,11 +2049,23 @@ button.dot:focus-visible {
 	}
 }
 
+/* Estados que precisam vencer as regras de base acima */
+.pill[aria-expanded="true"] .ic {
+	transform: rotate(180deg);
+}
+.thermo.entering .dot,
+.thermo.entering .dot-label {
+	transition: none;
+	opacity: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,
 	*::after {
+		/* biome-ignore lint/complexity/noImportantStyles: "reduzir movimento" precisa vencer toda animação, inclusive as de seletor mais específico */
 		transition-duration: 0ms !important;
+		/* biome-ignore lint/complexity/noImportantStyles: idem */
 		animation-duration: 0ms !important;
 	}
 }
