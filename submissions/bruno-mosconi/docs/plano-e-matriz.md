@@ -25,7 +25,7 @@ O resumo completo das regras do exercício está em `AGENTS.md`, seção 2.
 | CA7 | `npm run auditoria` reproduz o backtest (44,41% · 43,16% · 40,10% · 36,17% · 32,23% · 15,40%), fixado em `src/core/reference.test.ts`. TypeScript e Python precisam concordar; se divergirem, a revisão decide qual está certo e registra o motivo (D22; revisão inicial, R1–R4). | R "o scoring faz sentido?"; G "zero evidência de verificação" é fraqueza |
 | CA8 | Vendedor, produto, gestor, regional, setor e empresa ficam fora do score. A tela "Como funciona" mostra o que foi testado e descartado, com p-valores e backtest. | R "usa as features certas?"; D3 |
 | CA9 | Sem servidor, sem banco, sem LLM, sem chamada de rede em tempo de execução. | D7; D8; D15 |
-| CA10 | Código mantível e pronto para crescer: TypeScript estrito; núcleo puro separado da UI; interface `DataSource` com dois adaptadores (CSV e JSON) que dão o mesmo resultado; testes do núcleo; lint e formatação. `npm run check` verde. `npm run bench` mede o núcleo com os dados multiplicados por 100. | R "código limpo"; D15 |
+| CA10 | Código mantível e pronto para crescer: TypeScript estrito; núcleo puro separado da UI; contrato de dados `Dataset` com dois adaptadores (CSV e JSON) que dão o mesmo resultado (D51); testes do núcleo; lint e formatação. `npm run check` verde. `npm run bench` mede o núcleo com os dados multiplicados por 100. | R "código limpo"; D15 |
 | CA11 | README no template, com: Setup; Lógica (fórmula e faixas); validações; 2–3 exemplos reais de saída; checagens de sanidade (distribuição por lista); Limitações; resumo de "Como escalar". | R Documentação; C; G "formato da solução" |
 | CA12 | Process log da etapa do Claude Code: nota curta sobre a preparação; ferramentas; revisão inicial (leitura do problema antes de construir); decisões; erros da IA e correções; o que o Bruno adicionou; número de iterações (sem horas); prints; exports. | P; R; G "o que queremos ver no process log"; D17 |
 | CA13 | O PR só altera `submissions/bruno-mosconi/` (checado por comando). Título `[Submission] Bruno Mosconi — Challenge 003`. Um PR. Sem chaves, arquivos de sistema ou artefatos derivados. | C |
@@ -71,7 +71,7 @@ Já aplicado: o seletor de data oferece só 31/12/2017 e as 4 datas do backtest 
 | CA7 Backtest | `src/core/backtest.ts`, `analysis/*.py`, `reference.test.ts` | TS = Python, ou divergência decidida (D22) | saída do `npm run auditoria` |
 | CA8 Descartados | "Como funciona", `docs/analise-exploratoria.md` | revisor confere números com a análise | print + texto |
 | CA9 Sem rede | build estático | revisor procura `fetch` e URLs | parecer |
-| CA10 Código e escala | `src/core` vs `src/ui`, `DataSource` (CSV e JSON), Biome, TS estrito, `bench` | `npm run check`; `npm run bench`; revisor | saídas + parecer |
+| CA10 Código e escala | `src/core` vs `src/ui`, `Dataset` e os dois adaptadores (CSV e JSON), Biome, TS estrito, `bench` | `npm run check`; `npm run bench`; revisor | saídas + parecer |
 | CA11 README | `README.md` | critico (banca simulada) + leitura do Bruno | arquivo |
 | CA12 Process log | `process-log/*` | revisor (dados pessoais) + critico | arquivos |
 | CA13 Escopo do PR | branch `submission/bruno-mosconi`, `tools/adicionar-ao-git.sh` | travas do script a cada commit; `git diff --name-only upstream/main...HEAD` só lista a pasta | saída do comando |

@@ -72,6 +72,14 @@ test("herói com score baixo: vira a prospecção, e o nº 1 fica como cartão (
 	await expect(hero).toContainText("score 0");
 	const card = page.locator(".mini", { hasText: "MG Special" });
 	await expect(card).toContainText("1º");
+	// D56: o painel do nº 1 não contradiz o herói nem diz "mais potencial que 0%".
+	await card.click();
+	const p = panel(page);
+	await expect(p).toContainText("Resolva com uma mensagem rápida");
+	await expect(p).toContainText("Está entre os de menor potencial dos 298");
+	await expect(p).not.toContainText("Peça uma resposta");
+	await expect(p).not.toContainText("Mais potencial que 0%");
+	await page.keyboard.press("Escape");
 	await hero.getByRole("button", { name: "Ver a prospecção" }).click();
 	await expect(tab(page, "Prospecção")).toHaveAttribute(
 		"aria-selected",
@@ -124,10 +132,10 @@ test("quem é você: sugestões no topo, o que cada um vai encontrar e os sem ne
 	await expect(page).toHaveURL(/#entrada$/);
 	const groups = page.locator(".people > div");
 	await expect(groups.first().locator("h2")).toHaveText("Para conhecer o app");
-	await expect(groups.first()).toContainText("Sugestão: semana cheia");
+	await expect(groups.first()).toContainText("Semana cheia");
 	await expect(groups.first()).toContainText("31 prioridades");
 	await expect(groups.first()).toContainText(
-		"Sugestão: semana que começa pela prospecção",
+		"Semana que começa pela prospecção",
 	);
 	await expect(groups.first()).toContainText("US$ 718 mil frios na equipe");
 	await expect(groups.last().locator("h2")).toHaveText(

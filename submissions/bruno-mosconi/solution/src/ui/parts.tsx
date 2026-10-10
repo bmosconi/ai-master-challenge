@@ -3,7 +3,7 @@
 import { STALE_AFTER } from "../core/rules.ts";
 import { days } from "./format.ts";
 import { Icon } from "./Icon.tsx";
-import type { DealView, Temp } from "./model.ts";
+import { type DealView, LOW_SCORE, type Temp } from "./model.ts";
 import { TEMP_ICON, TEMP_LABEL } from "./Thermo.tsx";
 
 export const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -26,6 +26,12 @@ export function todo(d: DealView): { title: string; text: string } {
 		return {
 			title: "Atualize ou dê perda",
 			text: `Nenhum negócio da base fechou depois de ${STALE_AFTER} dias aberto. Confirme com o cliente se a compra ainda existe. Se não existir, registre a perda e libere o tempo para os negócios quentes.`,
+		};
+	// D56: com score baixo (o mesmo corte da D46), o potencial não justifica urgência.
+	if ((d.score ?? 100) < LOW_SCORE)
+		return {
+			title: "Resolva com uma mensagem rápida",
+			text: "O potencial dele é baixo perto dos negócios de todos os vendedores: não gaste a semana aqui. Pergunte ao cliente se segue adiante; se não, dê perda.",
 		};
 	const left = d.deadline?.days ?? 0;
 	if (d.temp === "esfriando" && left <= 14)

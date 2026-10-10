@@ -40,13 +40,13 @@ export function Art({
 
 /** Três perfis sugeridos, um por situação: semana cheia, semana de prospecção e gestão. */
 const SUGGESTED = [
-	{ role: "vendedor", name: "Zane Levy", why: "semana cheia" },
+	{ role: "vendedor", name: "Zane Levy", why: "Semana cheia" },
 	{
 		role: "vendedor",
 		name: "Anna Snelling",
-		why: "semana que começa pela prospecção",
+		why: "Semana que começa pela prospecção",
 	},
-	{ role: "gestor", name: "Summer Sewald", why: "visão da equipe" },
+	{ role: "gestor", name: "Summer Sewald", why: "Visão da equipe" },
 ] as const;
 
 export function EntryView({
@@ -115,7 +115,7 @@ export function EntryView({
 						).map((x) =>
 							row(
 								{ role: x.role, name: x.name },
-								`Sugestão: ${x.why}`,
+								x.why,
 								x.role === "gestor"
 									? managerLine(x.name)
 									: weekSummary(day, x.name),

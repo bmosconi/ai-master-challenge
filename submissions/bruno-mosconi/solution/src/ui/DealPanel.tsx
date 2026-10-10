@@ -35,9 +35,11 @@ export function DealPanel({
 				<div className="score-line">
 					<Ring score={d.score} size="md" />
 					<p>
-						Mais potencial que {d.score}% dos {num(day.scoreBase)} negócios
-						quentes e esfriando de todos os vendedores em {date(day.t)}.{" "}
-						{d.position}º na {whose}.{rank}
+						{d.score === 0
+							? "Está entre os de menor potencial"
+							: `Mais potencial que ${d.score}%`}{" "}
+						dos {num(day.scoreBase)} negócios quentes e esfriando de todos os
+						vendedores em {date(day.t)}. {d.position}º na {whose}.{rank}
 					</p>
 				</div>
 			)}

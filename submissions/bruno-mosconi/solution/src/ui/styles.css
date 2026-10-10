@@ -1289,7 +1289,8 @@ button.dot:focus-visible {
 }
 .entry-art {
 	margin: -12px auto 0;
-	aspect-ratio: 16 / 7;
+	/* Faixa baixa: a lista começa na primeira tela (banca simulada) */
+	aspect-ratio: 5 / 1;
 	object-fit: cover;
 }
 .entry h1,

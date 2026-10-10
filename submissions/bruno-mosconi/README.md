@@ -17,14 +17,15 @@
 ## Solução
 
 - **App publicado:** https://ai-master-challenge-solution-bruno.vercel.app
+- **Para avaliar em 2 minutos:** na tela "Quem é você?", abra Zane Levy e o negócio nº 1 ("Ver o motivo"); depois Anna Snelling (uma semana que começa pela prospecção); depois Summer Sewald (a visão da gestora); e, por fim, "Como funciona".
 - **Código:** `solution/` (React, Vite e TypeScript, sem servidor; o núcleo da regra fica em `solution/src/core/`, coberto por testes)
 
 ### Abordagem
 
-1. **Revisar antes de construir.** Todo o material de partida tinha sido preparado com IA. Antes de escrever código, recalculei cada número de forma independente e revisei regras, código e documentos (`process-log/01-revisao-inicial.md`). A revisão achou um viés de sobrevivência na chance: calculada só com negócios já ganhos ou perdidos, a chance parecia subir com a idade.
+1. **Revisar antes de construir.** Todo o material de partida tinha sido preparado com IA. Antes de escrever código, o Claude Code recalculou cada número de forma independente e revisou regras, código e documentos (`process-log/01-revisao-inicial.md`). A revisão achou um viés de sobrevivência na chance: calculada só com negócios já ganhos ou perdidos, a chance parecia subir com a idade.
 2. **Corrigir a base.** A base começa cortada em março de 2017: os negócios iniciados antes só aparecem se ainda estavam abertos naquele mês. Cada um passou a entrar na conta a partir da idade que tinha em março (entrada tardia), e uma data só fica disponível no app se toda faixa de idade tem margem de erro de até 5 pontos.
 3. **Testar a regra no passado** contra seis alternativas e um modelo de machine learning, com o vendedor como unidade do teste.
-4. **Construir para quem usa.** Uma tela por pessoa (vendedor e gestor), com protótipos aprovados em três rodadas e testes de uso com três personas, medindo o tempo até a resposta.
+4. **Construir para quem usa.** Uma tela por pessoa (vendedor e gestor), com protótipos em três rodadas (duas reprovadas por mim) e testes de uso com três personas, medindo o tempo até a resposta.
 
 ### Resultados / Findings
 
@@ -44,7 +45,7 @@ O app em uso (prints em `process-log/screenshots/03-app/`, em 1280 e 390 px, cla
 
 **Checagens:**
 - `npm run check`: tipos, lint e 82 testes. Os testes conferem os números contra a análise em Python e as funções estatísticas contra o scipy.
-- `npm run e2e`: 17 testes no navegador, inclusive o de que nenhuma requisição sai do próprio site.
+- `npm run e2e`: 21 testes no navegador, inclusive o de que nenhuma requisição sai do próprio site.
 - `npm run auditoria`: recalcula todos os números citados nos documentos.
 
 ### Lógica do score
@@ -94,6 +95,8 @@ Empates são desempatados pelo ID.
 | Sorteio | 14,1% |
 
 O potencial ganha de "só preço" por +7,66 pontos (margem de erro de 3,49 a 12,62; p = 0,0004) e em cada uma das três datas. Ele empata com "quente, depois esfriando, depois frio, e por preço" (+0,12 pontos; p = 0,90). O potencial ficou porque dá a frase de motivo e o score. Com a coorte limpa, que só usa os iniciados a partir de março de 2017 e não depende da hipótese da entrada tardia, sobra só 30/09: +18,69 pontos sobre "só preço". As duas formas chegam à mesma conclusão.
+
+**Quanto a lista se parece com a ordem por preço.** Bastante, e é bom dizer antes que a auditoria mostre. Em 31/12/2017, em média 88,6% dos 10 primeiros de cada vendedor também estão entre os 10 mais caros, e em 9 vendedores as listas são iguais. Em parte, isso acontece porque muitas listas são curtas. Pôr os frios no fim explica a maior parte do ganho sobre "só preço" (de 33,2% para 37,6%). A curva de chance soma mais +3,22 pontos (margem de erro de 0,63 a 6,41; p = 0,022), porque muda a ordem quando a idade pesa. Exemplo do Zane: o GTX Pro da Gogozoom (66 dias, US$ 4.821) fica em 2º pelo potencial e estaria em 5º pelo preço. O painel diz isso ("Pela ordem de preço, estaria em 5º").
 
 Fonte de todos os números: `npm run auditoria` (`solution/analysis/saidas/auditoria-ts.md`).
 
@@ -170,14 +173,14 @@ Antes desta etapa, houve uma preparação com o Claude (Cowork) como assistente.
 5. **Telas na direção aprovada e o "Como funciona".** Ao fim de cada incremento, o `revisor` e o `testador-de-uso` rodaram, e cada achado grave foi reproduzido antes de ser corrigido.
 6. **Escala e deploy.** Bench, segundo adaptador de dados, conferência dos documentos contra a auditoria e varredura de dados pessoais antes de publicar.
 
-As decisões estão em `process-log/decisoes.md` (D1 a D52), com quem decidiu e a evidência.
+As decisões estão em `process-log/decisoes.md` (D1 a D55), com quem decidiu e a evidência.
 
 ### Onde a IA errou e como corrigi
 
-São 30 erros registrados em `process-log/erros-da-ia.md`: 9 da preparação e 21 desta etapa. Os principais:
+São 34 erros registrados em `process-log/erros-da-ia.md`: 9 da preparação e 25 desta etapa. Os principais:
 
 - **Viés de sobrevivência (preparação).** A chance calculada só com concluídos subia com a idade (68,7% aos 14 dias, 71,1% aos 90). Corrigida com a coorte, ela cai para 9% aos 120 dias.
-- **Vazamento do futuro nas datas passadas.** O plano mostrava a empresa em todas as datas, mas "sem empresa" entrega que o negócio ainda estará aberto em 31/12. O `critico` pegou no plano. Depois, a troca do herói com animação vazou a empresa por 280 ms; o `revisor` pegou e eu reproduzi antes de corrigir.
+- **Vazamento do futuro nas datas passadas.** O plano mostrava a empresa em todas as datas, mas "sem empresa" entrega que o negócio ainda estará aberto em 31/12. O `critico` pegou no plano. Depois, a troca do herói com animação vazou a empresa por 280 ms; o `revisor` pegou e o Claude Code reproduziu o vazamento antes de corrigir.
 - **Interface que não atendia o pedido.** Duas rodadas reprovadas por parecerem painel genérico feito por IA.
 - **XSS no protótipo**, por um parâmetro da URL. Achado por uma revisão automática de segurança e reproduzido antes e depois da correção.
 - **Afirmações sem lastro.** Os documentos davam como pronta uma interface de dados que não existia, e uma curva estava trocada pela de outra coorte. Achado ao conferir os documentos contra a auditoria; a interface foi construída e testada.
