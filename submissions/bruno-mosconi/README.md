@@ -16,7 +16,7 @@
 
 ## Solução
 
-- **App publicado:** [[URL da Vercel, depois do deploy]]
+- **App publicado:** https://ai-master-challenge-solution-bruno.vercel.app
 - **Código:** `solution/` (React, Vite e TypeScript, sem servidor; o núcleo da regra fica em `solution/src/core/`, coberto por testes)
 
 ### Abordagem
@@ -115,7 +115,7 @@ npm run bench        # mede o núcleo com os dados multiplicados por 100
 
 Os scripts Python de referência (`solution/analysis/`) são opcionais: `pip install -r solution/analysis/requirements.txt`.
 
-**URL:** [[URL da Vercel, depois do deploy]]
+**URL:** https://ai-master-challenge-solution-bruno.vercel.app
 
 ### Recomendações
 
